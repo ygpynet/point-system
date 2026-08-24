@@ -10,6 +10,8 @@ import PostUser from 'flarum/forum/components/PostUser';
 import LinkButton from 'flarum/common/components/LinkButton';
 import Button from 'flarum/common/components/Button';
 import UserControls from 'flarum/forum/utils/UserControls';
+import PostControls from 'flarum/forum/utils/PostControls';
+import PostTipListModal from './components/PostTipListModal';
 import type User from 'flarum/common/models/User';
 import type Mithril from 'mithril';
 import ShopPage from './components/ShopPage';
@@ -24,6 +26,7 @@ import ItemGrantedNotification from './components/ItemGrantedNotification';
 import TradeRequestedNotification from './components/TradeRequestedNotification';
 import TradeAcceptedNotification from './components/TradeAcceptedNotification';
 import TradeCompletedNotification from './components/TradeCompletedNotification';
+import PostTippedNotification from './components/PostTippedNotification';
 import TradeModal from './components/TradeModal';
 import TipPostModal from './components/TipPostModal';
 import { applyAvatarDecoration } from './utils/applyAvatarDecoration';
@@ -60,6 +63,7 @@ app.initializers.add('ramon/point-system', () => {
   app.notificationComponents.pointSystemTradeRequested = TradeRequestedNotification;
   app.notificationComponents.pointSystemTradeAccepted = TradeAcceptedNotification;
   app.notificationComponents.pointSystemTradeCompleted = TradeCompletedNotification;
+  app.notificationComponents.pointSystemPostTipped = PostTippedNotification;
 
   // ── Inject the dynamic name-decoration <style> block once ───────────────
   // Deferred: `app.forum` isn't populated until after initializers finish.
@@ -306,10 +310,48 @@ app.initializers.add('ramon/point-system', () => {
       'pointSystem-tip',
       <Button
         className="Button Button--link"
-        icon="fas fa-gift"
         onclick={() => app.modal.show(TipPostModal, { post })}
       >
         {app.translator.trans('ramon-point-system.forum.post_controls.tip')}
+      </Button>,
+      15
+    );
+  });
+
+  // ── "Tipped by" summary under each post ─────────────────────────────────
+  // Reads the public `pointSystemTipsTotal` attribute (always attached to every
+  // Post that has tips). Only renders when the tip feature is on AND the post
+  // has at least one tip. Sits in the action bar next to the Tip button so the
+  // author/reader sees the love. The per-tipper roster is restricted and lives
+  // behind the `pointSystem.viewTipList` permission (see PostTipListModal).
+  extend(CommentPost.prototype, 'actionItems', function (this: any, items: any) {
+    if (!setting('pointSystem.tip_enabled', true)) return;
+    const post = this.attrs.post;
+    if (!post) return;
+
+    const total = Number(post.attribute?.('pointSystemTipsTotal') ?? 0);
+    if (!total) return;
+
+    items.add('pointSystem-tipSummary', postTipsSummary(total), 16);
+  });
+
+  // ── "打赏名单" (tip roster) item in the post ··· dropdown ───────────────
+  // Gated by the `pointSystem.viewTipList` permission so only users/groups the
+  // admin authorised can open the full list of who tipped a post. Hidden when
+  // the post has no tips. Uses the restricted `pointSystemTips` attribute, which
+  // the API only attaches for permitted actors.
+  extend(PostControls, 'userControls', function (this: any, items: any, post: any) {
+    if (!setting('pointSystem.tip_enabled', true)) return;
+    if (!post || post.contentType?.() !== 'comment') return;
+    if (!app.forum.attribute('pointSystemCanViewTipList')) return;
+
+    const tips = (post.attribute?.('pointSystemTips') as any[]) || [];
+    if (!Array.isArray(tips) || tips.length === 0) return;
+
+    items.add(
+      'pointSystem-tipList',
+      <Button icon="fas fa-list" onclick={() => app.modal.show(PostTipListModal, { post })}>
+        {app.translator.trans('ramon-point-system.forum.post_controls.tip_list')}
       </Button>,
       15
     );
@@ -388,6 +430,27 @@ function userTitleBadge(user: User, variantClass: string = ''): Mithril.Children
   if (!cleanSlug) return null;
   const cls = ['PointSystemUserTitle', `ps-title-${cleanSlug}`, variantClass].filter(Boolean).join(' ');
   return <span className={cls}>{text}</span>;
+}
+
+function postTipsSummary(total: number): Mithril.Children {
+  const icon = (app.forum.attribute('pointSystem.currency_icon') as string) || 'fas fa-coins';
+
+  // Use the localized tip unit (积分 / pts) so the tooltip reads consistently
+  // in the active language instead of mixing the global short code into a
+  // localized sentence.
+  // IMPORTANT: pass `true` as the 3rd arg so `trans()` returns a STRING, not
+  // the rich-text ARRAY it normally returns. Using that array as the HTML
+  // `title` attribute makes Mithril join its items with commas
+  // (e.g. "共收到打赏：,60, ,积分"), which is the bug we hit.
+  const unit = app.translator.trans('ramon-point-system.forum.post.tip_unit');
+  const title = app.translator.trans('ramon-point-system.forum.post.tip_summary_title', { total: total.toLocaleString(), unit }, true);
+
+  return (
+    <span className="PointSystemTipSummary" title={title}>
+      <i className={icon} aria-hidden="true" />
+      <span className="PointSystemTipSummary-amount">{total.toLocaleString()}</span>
+    </span>
+  );
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────

@@ -321,6 +321,13 @@ class ForumAttributes
             Schema\Boolean::make('pointSystemCanManage')
                 ->get(fn ($_, Context $context) => $context->getActor()->hasPermission('pointSystem.manage')),
 
+            // Tip roster ("打赏名单") — gates the per-post "view tippers" entry
+            // in the post controls dropdown. Mirrors the other per-user
+            // permission booleans above so the frontend can gate the button
+            // without ever touching a (non-existent) `user.can()` helper.
+            Schema\Boolean::make('pointSystemCanViewTipList')
+                ->get(fn ($_, Context $context) => $context->getActor()->hasPermission('pointSystem.viewTipList')),
+
             // Trade subsystem — exposes both the master toggle (so the UI
             // can hide the "Trade" button forum-wide) and the per-actor
             // permission (so the UI hides the button for users in groups

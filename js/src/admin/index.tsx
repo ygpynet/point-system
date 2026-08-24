@@ -73,6 +73,14 @@ app.initializers.add('ramon/point-system', () => {
         permission: 'pointSystem.trade',
       },
       'reply'
+    )
+    .registerPermission(
+      {
+        icon: 'fas fa-list',
+        label: app.translator.trans('ramon-point-system.admin.permissions.view_tip_list'),
+        permission: 'pointSystem.viewTipList',
+      },
+      'moderate'
     );
 
   // Required by fof/forum-widgets-core: widgets must be registered in both

@@ -32,6 +32,8 @@ ramon-point-system:
       trade_requested: "{name} wants to trade with you"
       trade_accepted: "{name} accepted the trade — accept yours to finalise"
       trade_completed: "Trade with {name} completed"
+      post_tipped: "{name} tipped your post with {amount} {unit}"
+      points_unit: "Points"
     user_controls:
       award_points: "Manage points"
       trade: "Trade"
@@ -57,6 +59,10 @@ ramon-point-system:
       trades: "Trades"
     post_controls:
       tip: "Tip"
+      tip_list: "Tip list"
+    post:
+      tip_summary_title: "Tips received: {total} {unit}"
+      tip_unit: "pts"
     tip_modal:
       title: "Tip this post"
       your_balance: "Your balance"
@@ -66,6 +72,10 @@ ramon-point-system:
       confirm_tip: "Confirm tip"
       success: "Tip sent! {amount} points transferred"
       error: "Tip failed. Please try again"
+    tip_list:
+      title: "Tip list"
+      empty: "No tips yet."
+      total: "{total} points from {count, plural, one {# tipper} other {# tippers}}"
     trades_page:
       title: "Trades"
       subtitle: "Trade decorations and points with other users. Both sides must accept before a trade completes."
@@ -252,6 +262,7 @@ ramon-point-system:
       claim: "Claim rewards"
       manage: "Manage the point system"
       trade: "Trade decorations with other users"
+      view_tip_list: "View tip list"
     tabs:
       rules: "Points & Rules"
       users: "Users"

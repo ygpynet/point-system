@@ -25,6 +25,10 @@ ramon-point-system:
       trades: "交易"
     post_controls:
       tip: "打赏"
+      tip_list: "打赏名单"
+    post:
+      tip_summary_title: "共收到打赏：{total} {unit}"
+      tip_unit: "积分"
     tip_modal:
       title: "打赏帖子"
       your_balance: "当前余额"
@@ -34,6 +38,13 @@ ramon-point-system:
       confirm_tip: "确认打赏"
       success: "打赏成功！已转出 {amount} 积分"
       error: "打赏失败，请重试"
+    tip_list:
+      title: "打赏名单"
+      empty: "暂无打赏。"
+      total: "共 {total} 积分，来自 {count, plural, other {# 人}}"
+    notifications:
+      post_tipped: "{name} 打赏了你的帖子，共 {amount} {unit}"
+      points_unit: "积分"
   admin:
     rules:
       checkin_base_points: "签到基础奖励（第1天）"
@@ -52,3 +63,5 @@ ramon-point-system:
       tip_enabled_help: "开启后，帖子操作栏将显示打赏按钮。"
       tip_preset_amounts: "预设金额"
       tip_preset_amounts_help: "JSON 数组格式，如 [5,10,15,20]。用户打赏时可快速选择这些金额。"
+    permissions:
+      view_tip_list: "查看打赏名单"

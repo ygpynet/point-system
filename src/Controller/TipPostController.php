@@ -14,8 +14,9 @@ use Laminas\Diactoros\Response\JsonResponse;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
-use Ramon\PointSystem\Event\PointsManuallyChanged;
+use Ramon\PointSystem\Event\PostTipped;
 use Ramon\PointSystem\Model\PointTransaction;
+use Ramon\PointSystem\Model\PostTip;
 use Ramon\PointSystem\Model\UserPoints;
 use Ramon\PointSystem\Repository\PointsRepository;
 
@@ -101,16 +102,30 @@ class TipPostController implements RequestHandlerInterface
                 'meta' => ['type' => 'tip_in', 'sender_id' => $actor->id],
             ]);
 
-            // Raise events so notifications fire consistently.
-            $actorPoints->raise(new PointsManuallyChanged($actor, $actor, -$amount, 'tip_out'));
-            $recipientPoints->raise(new PointsManuallyChanged($recipient, $actor, $amount, 'tip_in'));
-            $this->dispatchEventsFor($actorPoints, $actor);
-            $this->dispatchEventsFor($recipientPoints, $actor);
+            // Record the tip so the post can show who tipped how much.
+            PostTip::create([
+                'post_id' => $postId,
+                'sender_id' => $actor->id,
+                'recipient_id' => $recipient->id,
+                'amount' => $amount,
+            ]);
 
             $this->db->commit();
 
+            // Notify the author AFTER the commit so a notification row is only
+            // ever written for a tip that actually landed. The dedicated
+            // PostTipped event replaces the generic "points changed" notice.
+            $this->events->dispatch(new PostTipped($post, $actor, $recipient, $amount));
+
             return new JsonResponse(['data' => [
                 'newBalance' => $actorPoints->fresh()->balance,
+                // Return the recipient's (post author's) updated balance too, so
+                // the forum can push it straight into the store and refresh the
+                // post-header points badge live — without depending on the
+                // `pointSystem.viewOthers` permission or on `post.refresh()`
+                // re-including the author with a visible `pointBalance`.
+                'recipientId' => (int) $recipient->id,
+                'recipientNewBalance' => (int) $recipientPoints->fresh()->balance,
             ]]);
         } catch (\Exception $e) {
             $this->db->rollBack();

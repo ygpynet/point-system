@@ -13,8 +13,10 @@ namespace Ramon\PointSystem;
 
 use Flarum\Api\Endpoint;
 use Flarum\Api\Resource\ForumResource;
+use Flarum\Api\Resource\PostResource;
 use Flarum\Api\Resource\UserResource;
 use Flarum\Discussion\Event\Started as DiscussionStarted;
+use Flarum\Post\Post;
 use Flarum\Extend;
 use Flarum\Post\Event\Posted as PostPosted;
 use Flarum\User\Event\Registered as UserRegistered;
@@ -42,6 +44,9 @@ $extenders = [
     (new Extend\Model(\Flarum\User\User::class))
         ->hasOne('pointsBalance', \Ramon\PointSystem\Model\UserPoints::class, 'user_id'),
 
+    (new Extend\Model(Post::class))
+        ->hasMany('pointTipRecords', \Ramon\PointSystem\Model\PostTip::class, 'post_id'),
+
     // ── Event listeners — earn points on core actions ────────────────────────
     // NOTE: the daily bonus is now MANUAL check-in only (CheckInController +
     // the forum widget). The old LoggedIn listener and the session-resume
@@ -58,7 +63,8 @@ $extenders = [
         ->listen(\Ramon\PointSystem\Event\ItemGranted::class, Listener\SendNotificationWhenItemGranted::class)
         ->listen(\Ramon\PointSystem\Event\TradeRequested::class, Listener\SendNotificationWhenTradeRequested::class)
         ->listen(\Ramon\PointSystem\Event\TradeAccepted::class, Listener\SendNotificationWhenTradeAccepted::class)
-        ->listen(\Ramon\PointSystem\Event\TradeCompleted::class, Listener\SendNotificationWhenTradeCompleted::class),
+        ->listen(\Ramon\PointSystem\Event\TradeCompleted::class, Listener\SendNotificationWhenTradeCompleted::class)
+        ->listen(\Ramon\PointSystem\Event\PostTipped::class, Listener\SendNotificationWhenPostTipped::class),
 
     // Conditional: flarum/likes ─ award points to author + liker
     (new Extend\Conditional())
@@ -75,7 +81,8 @@ $extenders = [
         ->type(\Ramon\PointSystem\Notification\ItemGrantedBlueprint::class, ['alert'])
         ->type(\Ramon\PointSystem\Notification\TradeRequestedBlueprint::class, ['alert'])
         ->type(\Ramon\PointSystem\Notification\TradeAcceptedBlueprint::class, ['alert'])
-        ->type(\Ramon\PointSystem\Notification\TradeCompletedBlueprint::class, ['alert']),
+        ->type(\Ramon\PointSystem\Notification\TradeCompletedBlueprint::class, ['alert'])
+        ->type(\Ramon\PointSystem\Notification\PostTippedBlueprint::class, ['alert']),
 
     (new Extend\ApiResource(\Ramon\PointSystem\Api\Resource\ShopItemResource::class)),
     (new Extend\ApiResource(\Ramon\PointSystem\Api\Resource\AvatarDecorationResource::class)),
@@ -94,6 +101,13 @@ $extenders = [
         ->endpoint(
             [Endpoint\Index::class, Endpoint\Show::class],
             fn (Endpoint\Index|Endpoint\Show $endpoint) => $endpoint->eagerLoad('pointsBalance')
+        ),
+
+    (new Extend\ApiResource(PostResource::class))
+        ->fields(Api\PostFields::class)
+        ->endpoint(
+            [Endpoint\Index::class, Endpoint\Show::class],
+            fn (Endpoint\Index|Endpoint\Show $endpoint) => $endpoint->eagerLoad('pointTipRecords.sender')
         ),
 
     (new Extend\ApiResource(ForumResource::class))

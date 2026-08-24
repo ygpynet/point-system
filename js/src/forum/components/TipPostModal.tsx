@@ -122,6 +122,24 @@ export default class TipPostModal extends Modal {
         });
       }
 
+      // Push the recipient's (post author's) updated balance straight into the
+      // store so the post-header points badge refreshes live, independent of
+      // `post.refresh()` re-including the author with a visible `pointBalance`.
+      // Only when the actor can already see others' points (the attribute is
+      // present on the model) — otherwise the header doesn't show it anyway,
+      // and we avoid leaking the total via the response payload.
+      if (data?.recipientId !== undefined && data?.recipientNewBalance !== undefined) {
+        const recipient = app.store.getById('users', String(data.recipientId));
+        if (recipient && recipient.attribute('pointBalance') !== undefined) {
+          recipient.pushAttributes({ pointBalance: Number(data.recipientNewBalance) });
+        }
+      }
+
+      // Re-fetch the post so the on-post "tipped by" summary updates live.
+      try {
+        this.attrs.post?.refresh?.();
+      } catch {}
+
       app.alerts.show(
         { type: 'success' },
         app.translator.trans('ramon-point-system.forum.tip_modal.success', { amount: amount.toLocaleString() })

@@ -32,6 +32,8 @@ ramon-point-system:
       trade_requested: "{name} quer fazer uma troca com você"
       trade_accepted: "{name} aceitou a troca — aceite a sua parte para finalizar"
       trade_completed: "Troca com {name} concluída"
+      post_tipped: "{name} deu gorjeta no seu post de {amount} {unit}"
+      points_unit: "pontos"
     user_controls:
       award_points: "Gerenciar pontos"
       trade: "Trocar"
@@ -57,6 +59,10 @@ ramon-point-system:
       trades: "Trocas"
     post_controls:
       tip: "Gorjeta"
+      tip_list: "Lista de gorjetas"
+    post:
+      tip_summary_title: "Gorjetas recebidas: {total} {unit}"
+      tip_unit: "pts"
     tip_modal:
       title: "Dar gorjeta neste post"
       your_balance: "Seu saldo"
@@ -66,6 +72,10 @@ ramon-point-system:
       confirm_tip: "Confirmar gorjeta"
       success: "Gorjeta enviada! {amount} pontos transferidos"
       error: "Falha ao enviar gorjeta. Tente novamente"
+    tip_list:
+      title: "Lista de gorjetas"
+      empty: "Nenhuma gorjeta ainda."
+      total: "{total} pontos de {count, plural, one {# pessoa} other {# pessoas}}"
     trades_page:
       title: "Trocas"
       subtitle: "Troque decorações e pontos com outros usuários. Os dois lados precisam aceitar para a troca ser concluída."
@@ -252,6 +262,7 @@ ramon-point-system:
       claim: "Resgatar recompensas"
       manage: "Gerenciar o sistema de pontos"
       trade: "Trocar decorações com outros usuários"
+      view_tip_list: "Ver lista de gorjetas"
     tabs:
       rules: "Pontos & Regras"
       users: "Usuários"

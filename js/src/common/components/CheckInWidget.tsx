@@ -79,7 +79,7 @@ export function createCheckInWidget(WidgetBase) {
 
       return (
         <div className="PointSystemCheckInWidget-body">
-          <div className="PointSystemCheckInWidget-streak" title={app.translator.trans('ramon-point-system.forum.checkin.streak_title')}>
+          <div className="PointSystemCheckInWidget-streak" title={app.translator.trans('ramon-point-system.forum.checkin.streak_title', {}, true)}>
             <i className="fas fa-fire" aria-hidden="true" />{' '}
             {app.translator.trans('ramon-point-system.forum.checkin.streak', { count: streak })}
           </div>
@@ -122,7 +122,7 @@ export function createCheckInWidget(WidgetBase) {
               className="Button PointSystemCheckInWidget-makeup"
               icon="fas fa-rotate-left"
               disabled={this.loading}
-              title={app.translator.trans('ramon-point-system.forum.checkin.makeup_title', { cost: makeupCost, remaining: makeupRemaining })}
+              title={app.translator.trans('ramon-point-system.forum.checkin.makeup_title', { cost: makeupCost, remaining: makeupRemaining }, true)}
               onclick={() => this.makeUp()}
             >
               {app.translator.trans('ramon-point-system.forum.checkin.makeup_action', { cost: makeupCost })}
