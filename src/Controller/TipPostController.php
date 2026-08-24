@@ -9,15 +9,12 @@ use Flarum\Post\Post;
 use Flarum\User\Exception\NotAuthenticatedException;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\ConnectionInterface;
-use Illuminate\Support\Arr;
 use Laminas\Diactoros\Response\JsonResponse;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Server\RequestHandlerInterface;
+use Psr\Server\RequestHandlerInterface;
 use Ramon\PointSystem\Event\PostTipped;
-use Ramon\PointSystem\Model\PointTransaction;
 use Ramon\PointSystem\Model\PostTip;
-use Ramon\PointSystem\Model\UserPoints;
 use Ramon\PointSystem\Repository\PointsRepository;
 
 /**
@@ -25,11 +22,18 @@ use Ramon\PointSystem\Repository\PointsRepository;
  * Body: { postId: int, amount: int }
  *
  * Transfers points from the actor to the post author.
+ *
+ * The actual balance movement is delegated to {@see PointsRepository}:
+ * `deduct()` (actor, atomic, balance-checked, ledger, auto-group sync) and
+ * `award()` (recipient). Both take a `SELECT … FOR UPDATE` row lock *inside*
+ * their own transaction, so the balance is checked and mutated under the lock
+ * — there is no window where two concurrent tips could both pass a pre-check
+ * and drive the sender's balance negative (the TOCTOU the old hand-rolled
+ * decrement had). Keeping tips on the same engine as claims/trades also means
+ * auto-group membership stays consistent and the point ledger is uniform.
  */
 class TipPostController implements RequestHandlerInterface
 {
-    use \Flarum\Foundation\DispatchEventsTrait;
-
     public function __construct(
         protected ConnectionInterface $db,
         protected PointsRepository $points,
@@ -67,69 +71,48 @@ class TipPostController implements RequestHandlerInterface
             return new JsonResponse(['errors' => [['detail' => 'You cannot tip yourself']]], 422);
         }
 
-        $actorPoints = UserPoints::query()->where('user_id', $actor->id)->first();
-        if (! $actorPoints || $actorPoints->balance < $amount) {
-            return new JsonResponse(['errors' => [['detail' => 'Insufficient points']]], 422);
+        if (! $this->points->isEnabled()) {
+            return new JsonResponse(['errors' => [['detail' => 'Points are disabled']]], 422);
         }
-
-        $this->db->beginTransaction();
 
         try {
-            $actorPoints->decrement('balance', $amount);
+            $this->db->transaction(function () use ($actor, $recipient, $postId, $amount) {
+                // Atomic, balance-checked (throws DomainException on shortfall),
+                // ledger + auto-group sync. Takes the actor row lock internally.
+                $this->points->deduct($actor, $amount, 'tip.out', Post::class, $postId);
 
-            $recipientPoints = UserPoints::query()->firstOrCreate(
-                ['user_id' => $recipient->id],
-                ['balance' => 0, 'lifetime' => 0]
-            );
-            $recipientPoints->increment('balance', $amount);
-            $recipientPoints->increment('lifetime', $amount);
+                // Same engine for the recipient: balance + lifetime + ledger.
+                $this->points->award($recipient, $amount, 'tip.in', Post::class, $postId);
 
-            PointTransaction::create([
-                'user_id' => $actor->id,
-                'amount' => -$amount,
-                'reason' => "Tipped post #{$postId}",
-                'reference_type' => Post::class,
-                'reference_id' => $postId,
-                'meta' => ['type' => 'tip_out', 'recipient_id' => $recipient->id],
-            ]);
-
-            PointTransaction::create([
-                'user_id' => $recipient->id,
-                'amount' => $amount,
-                'reason' => "Received tip for post #{$postId}",
-                'reference_type' => Post::class,
-                'reference_id' => $postId,
-                'meta' => ['type' => 'tip_in', 'sender_id' => $actor->id],
-            ]);
-
-            // Record the tip so the post can show who tipped how much.
-            PostTip::create([
-                'post_id' => $postId,
-                'sender_id' => $actor->id,
-                'recipient_id' => $recipient->id,
-                'amount' => $amount,
-            ]);
-
-            $this->db->commit();
-
-            // Notify the author AFTER the commit so a notification row is only
-            // ever written for a tip that actually landed. The dedicated
-            // PostTipped event replaces the generic "points changed" notice.
-            $this->events->dispatch(new PostTipped($post, $actor, $recipient, $amount));
-
-            return new JsonResponse(['data' => [
-                'newBalance' => $actorPoints->fresh()->balance,
-                // Return the recipient's (post author's) updated balance too, so
-                // the forum can push it straight into the store and refresh the
-                // post-header points badge live — without depending on the
-                // `pointSystem.viewOthers` permission or on `post.refresh()`
-                // re-including the author with a visible `pointBalance`.
-                'recipientId' => (int) $recipient->id,
-                'recipientNewBalance' => (int) $recipientPoints->fresh()->balance,
-            ]]);
-        } catch (\Exception $e) {
-            $this->db->rollBack();
+                // Record the tip so the post can show who tipped how much.
+                // Stackable by design — a repeat tip is a fresh row.
+                PostTip::create([
+                    'post_id' => $postId,
+                    'sender_id' => $actor->id,
+                    'recipient_id' => $recipient->id,
+                    'amount' => $amount,
+                ]);
+            });
+        } catch (\DomainException $e) {
+            return new JsonResponse(['errors' => [['detail' => 'Insufficient points']]], 422);
+        } catch (\Throwable $e) {
             return new JsonResponse(['errors' => [['detail' => 'Transaction failed']]], 500);
         }
+
+        // Notify the author AFTER the commit so a notification row is only
+        // ever written for a tip that actually landed. The dedicated
+        // PostTipped event replaces the generic "points changed" notice.
+        $this->events->dispatch(new PostTipped($post, $actor, $recipient, $amount));
+
+        return new JsonResponse(['data' => [
+            'newBalance' => (int) $this->points->getOrCreate($actor)->balance,
+            // Return the recipient's (post author's) updated balance too, so
+            // the forum can push it straight into the store and refresh the
+            // post-header points badge live — without depending on the
+            // `pointSystem.viewOthers` permission or on `post.refresh()`
+            // re-including the author with a visible `pointBalance`.
+            'recipientId' => (int) $recipient->id,
+            'recipientNewBalance' => (int) $this->points->getOrCreate($recipient)->balance,
+        ]]);
     }
 }
