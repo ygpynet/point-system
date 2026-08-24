@@ -5,11 +5,18 @@ declare(strict_types=1);
 namespace Ramon\PointSystem\Listener;
 
 use Flarum\User\Event\Registered;
+use Ramon\PointSystem\Points\PointEarner;
 use Ramon\PointSystem\Repository\PointsRepository;
 
-class InitUserPoints
+class InitUserPoints implements PointEarner
 {
     public function __construct(protected PointsRepository $points) {}
+
+    #[\Override]
+    public static function event(): string
+    {
+        return Registered::class;
+    }
 
     public function handle(Registered $event): void
     {

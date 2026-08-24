@@ -94,10 +94,37 @@ class PointsRepository
     }
 
     /**
+     * Reasons that map 1:1 to a single domain entity (one discussion, one post,
+     * one registration). A second {@see award()} carrying the same
+     * (reason, reference_type, reference_id) is therefore a duplicate — most
+     * commonly a domain event re-fired under a queue retry or worker restart —
+     * and must be skipped so the user is never double-credited.
+     *
+     * Like awards are deliberately NOT in this list: a post can receive many
+     * likes, each a legitimate, separate award that must not be de-duplicated.
+     *
+     * @var string[]
+     */
+    private const IDEMPOTENT_REASONS = [
+        'discussion.started',
+        'post.posted',
+        'user.registered',
+    ];
+
+    /**
+     * Is this a reason that must never be awarded twice for the same reference?
+     */
+    private function isIdempotentReason(string $reason): bool
+    {
+        return in_array($reason, self::IDEMPOTENT_REASONS, true);
+    }
+
+    /**
      * Credit a user with points. Updates both lifetime and balance, logs a
      * transaction row, then syncs auto-groups.
      *
-     * Returns the transaction row (null if amount was zero / system disabled).
+     * Returns the transaction row (null if amount was zero / system disabled /
+     * already awarded for an idempotent reason+reference).
      */
     public function award(
         User $user,
@@ -114,6 +141,24 @@ class PointsRepository
         $tx = null;
         $points = $this->db->transaction(function () use ($user, $amount, $reason, $referenceType, $referenceId, $meta, &$tx) {
             $points = $this->getOrCreateForUpdate($user);
+
+            // Idempotency guard. Runs under the row lock so a concurrent
+            // re-dispatch can't slip a second credit between the check and the
+            // write. Only entity-scoped reasons participate (see
+            // {@see IDEMPOTENT_REASONS}); like awards are intentionally exempt.
+            if ($referenceType !== null && $referenceId !== null && $this->isIdempotentReason($reason)) {
+                $already = PointTransaction::where('user_id', $user->id)
+                    ->where('reason', $reason)
+                    ->where('reference_type', $referenceType)
+                    ->where('reference_id', $referenceId)
+                    ->where('amount', '>', 0)
+                    ->exists();
+
+                if ($already) {
+                    return $points;
+                }
+            }
+
             $points->lifetime += $amount;
             $points->balance  += $amount;
             $points->raise(new PointsAwarded($user, $amount, $reason));

@@ -6,11 +6,18 @@ namespace Ramon\PointSystem\Listener;
 
 use Flarum\Post\CommentPost;
 use Flarum\Post\Event\Posted;
+use Ramon\PointSystem\Points\PointEarner;
 use Ramon\PointSystem\Repository\PointsRepository;
 
-class AwardPostPoints
+class AwardPostPoints implements PointEarner
 {
     public function __construct(protected PointsRepository $points) {}
+
+    #[\Override]
+    public static function event(): string
+    {
+        return Posted::class;
+    }
 
     public function handle(Posted $event): void
     {

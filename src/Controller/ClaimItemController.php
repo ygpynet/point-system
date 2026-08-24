@@ -14,6 +14,7 @@ use Ramon\PointSystem\FeatureGate;
 use Ramon\PointSystem\Model\ShopClaim;
 use Ramon\PointSystem\Model\UserPoints;
 use Ramon\PointSystem\Repository\PointsRepository;
+use Ramon\PointSystem\Support\DecorationRegistry;
 use Ramon\PointSystem\Support\ItemAvailability;
 use Ramon\PointSystem\Support\ShopItemLocator;
 
@@ -44,6 +45,7 @@ class ClaimItemController implements RequestHandlerInterface
         protected PointsRepository $points,
         protected ConnectionInterface $db,
         protected FeatureGate $features,
+        protected DecorationRegistry $registry,
     ) {}
 
     #[\Override]
@@ -58,13 +60,7 @@ class ClaimItemController implements RequestHandlerInterface
         $body   = (array) $request->getParsedBody();
         $type = $body['type'] ?? null;
 
-        if (! in_array($type, [
-            ShopClaim::TYPE_AVATAR,
-            ShopClaim::TYPE_NAME,
-            ShopClaim::TYPE_COVER,
-            ShopClaim::TYPE_TITLE,
-            ShopClaim::TYPE_POST_HL,
-        ], true) || $id <= 0) {
+        if (! $this->registry->has($type) || $id <= 0) {
             return new JsonResponse(['errors' => [['detail' => 'Invalid item']]], 422);
         }
 

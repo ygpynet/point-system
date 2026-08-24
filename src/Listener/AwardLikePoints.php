@@ -4,11 +4,19 @@ declare(strict_types=1);
 
 namespace Ramon\PointSystem\Listener;
 
+use Flarum\Likes\Event\PostWasLiked;
+use Ramon\PointSystem\Points\PointEarner;
 use Ramon\PointSystem\Repository\PointsRepository;
 
-class AwardLikePoints
+class AwardLikePoints implements PointEarner
 {
     public function __construct(protected PointsRepository $points) {}
+
+    #[\Override]
+    public static function event(): string
+    {
+        return PostWasLiked::class;
+    }
 
     public function handle($event): void
     {

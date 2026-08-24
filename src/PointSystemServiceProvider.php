@@ -15,7 +15,9 @@ namespace Ramon\PointSystem;
 
 use Flarum\Foundation\AbstractServiceProvider;
 use Ramon\PointSystem\Model\GroupOffer;
+use Ramon\PointSystem\Points\PointEarnerRegistry;
 use Ramon\PointSystem\Repository\PointsRepository;
+use Ramon\PointSystem\Support\DecorationRegistry;
 
 class PointSystemServiceProvider extends AbstractServiceProvider
 {
@@ -23,6 +25,8 @@ class PointSystemServiceProvider extends AbstractServiceProvider
     public function register(): void
     {
         $this->container->singleton(PointsRepository::class);
+        $this->container->singleton(PointEarnerRegistry::class);
+        $this->container->singleton(DecorationRegistry::class, fn () => DecorationRegistry::builtIn());
     }
 
     public function boot(): void
