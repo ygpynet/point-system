@@ -12,7 +12,7 @@ use Illuminate\Database\ConnectionInterface;
 use Laminas\Diactoros\Response\JsonResponse;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Psr\Server\RequestHandlerInterface;
+use Psr\Http\Server\RequestHandlerInterface;
 use Ramon\PointSystem\Event\PostTipped;
 use Ramon\PointSystem\Model\PostTip;
 use Ramon\PointSystem\Repository\PointsRepository;
