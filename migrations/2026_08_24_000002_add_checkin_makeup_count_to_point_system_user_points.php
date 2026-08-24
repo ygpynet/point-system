@@ -2,11 +2,30 @@
 
 declare(strict_types=1);
 
-use Flarum\Database\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Schema\Builder;
 
-return Migration::addColumns('point_system_user_points', [
-    // Make-up check-ins used since the last REAL check-in. Reset to 0 by a
-    // real check-in; the makeup endpoint refuses to go past the configured
-    // max consecutive makeups.
-    'checkin_makeup_count' => ['integer', 'unsigned' => true, 'default' => 0, 'after' => 'checkin_streak'],
-]);
+return [
+    'up' => function (Builder $schema) {
+        if (! $schema->hasTable('point_system_user_points')) {
+            return;
+        }
+
+        $schema->table('point_system_user_points', function (Blueprint $table) use ($schema) {
+            if (! $schema->hasColumn('point_system_user_points', 'checkin_makeup_count')) {
+                $table->integer('checkin_makeup_count')->unsigned()->default(0)->after('checkin_streak');
+            }
+        });
+    },
+    'down' => function (Builder $schema) {
+        if (! $schema->hasTable('point_system_user_points')) {
+            return;
+        }
+
+        $schema->table('point_system_user_points', function (Blueprint $table) use ($schema) {
+            if ($schema->hasColumn('point_system_user_points', 'checkin_makeup_count')) {
+                $table->dropColumn('checkin_makeup_count');
+            }
+        });
+    },
+];

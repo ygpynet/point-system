@@ -2,9 +2,36 @@
 
 declare(strict_types=1);
 
-use Flarum\Database\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Schema\Builder;
 
-return Migration::addColumns('point_system_user_points', [
-    'current_title_decoration_id'   => ['integer', 'unsigned' => true, 'nullable' => true, 'after' => 'current_cover_decoration_id'],
-    'current_post_hl_decoration_id' => ['integer', 'unsigned' => true, 'nullable' => true, 'after' => 'current_title_decoration_id'],
-]);
+return [
+    'up' => function (Builder $schema) {
+        if (! $schema->hasTable('point_system_user_points')) {
+            return;
+        }
+
+        $schema->table('point_system_user_points', function (Blueprint $table) use ($schema) {
+            if (! $schema->hasColumn('point_system_user_points', 'current_title_decoration_id')) {
+                $table->integer('current_title_decoration_id')->unsigned()->nullable()->after('current_cover_decoration_id');
+            }
+            if (! $schema->hasColumn('point_system_user_points', 'current_post_hl_decoration_id')) {
+                $table->integer('current_post_hl_decoration_id')->unsigned()->nullable()->after('current_title_decoration_id');
+            }
+        });
+    },
+    'down' => function (Builder $schema) {
+        if (! $schema->hasTable('point_system_user_points')) {
+            return;
+        }
+
+        $schema->table('point_system_user_points', function (Blueprint $table) use ($schema) {
+            if ($schema->hasColumn('point_system_user_points', 'current_title_decoration_id')) {
+                $table->dropColumn('current_title_decoration_id');
+            }
+            if ($schema->hasColumn('point_system_user_points', 'current_post_hl_decoration_id')) {
+                $table->dropColumn('current_post_hl_decoration_id');
+            }
+        });
+    },
+];
