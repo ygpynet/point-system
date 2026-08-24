@@ -1,0 +1,234 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Ramon\PointSystem\Api;
+
+use Flarum\Api\Context;
+use Flarum\Api\Schema;
+use Flarum\User\User;
+use Ramon\PointSystem\Model\AvatarDecoration;
+use Ramon\PointSystem\Model\CoverDecoration;
+use Ramon\PointSystem\Model\NameDecoration;
+use Ramon\PointSystem\Model\PostHighlightDecoration;
+use Ramon\PointSystem\Model\ShopClaim;
+use Ramon\PointSystem\Model\TitleDecoration;
+use Ramon\PointSystem\Model\UserPoints;
+use WeakMap;
+
+class UserFields
+{
+    /**
+     * Per-User memoization of the points row. Each user serialized triggers up
+     * to 14 field getters and another batch of decoration lookups; without
+     * this cache every getter would hit the DB independently. WeakMap drops
+     * entries as soon as the User instance is garbage-collected, so it doesn't
+     * leak across requests in long-running workers (queue, octane).
+     *
+     * @var WeakMap<User, ?UserPoints>
+     */
+    protected WeakMap $pointsCache;
+
+    /**
+     * GLOBAL (not per-User) cache of decoration rows, keyed by `{class}:{id}`.
+     *
+     * A decoration row is IDENTICAL for every user (the catalog is admin-curated
+     * and shared), so the previous per-User cache re-ran the same `find($id)`
+     * for every user in a list — an N+1 when serializing many users (post
+     * stream, user list). Keying by the decoration's PK fetches row #5 ONCE per
+     * request no matter how many users equipped it.
+     *
+     * Not a WeakMap because the key is a string (the PK), not an object. The
+     * cache lives for the UserFields instance, which is rebuilt per request
+     * (ContainerUtil::wrapCallback → container make), so under php-fpm it is
+     * request-scoped. Under Octane the worst case is an admin-edited decoration
+     * showing stale until the worker recycles — rare and self-correcting, the
+     * same trade-off as {@see \Ramon\PointSystem\Api\ForumAttributes::$hasCreatorColumnCache}.
+     *
+     * @var array<string, AvatarDecoration|NameDecoration|CoverDecoration|TitleDecoration|PostHighlightDecoration|null>
+     */
+    protected array $decorationCache = [];
+
+    public function __construct()
+    {
+        $this->pointsCache = new WeakMap();
+    }
+
+    public function __invoke(): array
+    {
+        return [
+            Schema\Integer::make('pointBalance')
+                ->visible(fn (User $user, Context $context) => $this->canSeePoints($user, $context))
+                ->get(fn (User $user) => $this->points($user)?->balance ?? 0),
+
+            Schema\Integer::make('pointLifetime')
+                ->visible(fn (User $user, Context $context) => $this->canSeePoints($user, $context))
+                ->get(fn (User $user) => $this->points($user)?->lifetime ?? 0),
+
+            Schema\Integer::make('equippedAvatarDecorationId')
+                ->nullable()
+                ->get(fn (User $user) => $this->points($user)?->current_avatar_decoration_id),
+
+            Schema\Str::make('equippedAvatarDecorationUrl')
+                ->nullable()
+                ->get(function (User $user): ?string {
+                    $id = $this->points($user)?->current_avatar_decoration_id;
+                    if (! $id) {
+                        return null;
+                    }
+                    $deco = $this->decoration(AvatarDecoration::class, $id);
+                    // Prefer image_url (admin chose URL source) over image_path
+                    // (admin uploaded a file). Both are nullable now, so the
+                    // null-coalesce keeps the equipped frame visible after the
+                    // schema migrated to allowing both sources.
+                    return $deco?->image_url ?: $deco?->image_path;
+                }),
+
+            Schema\Integer::make('equippedNameDecorationId')
+                ->nullable()
+                ->get(fn (User $user) => $this->points($user)?->current_name_decoration_id),
+
+            Schema\Str::make('equippedNameDecorationSlug')
+                ->nullable()
+                ->get(function (User $user): ?string {
+                    $id = $this->points($user)?->current_name_decoration_id;
+                    if (! $id) {
+                        return null;
+                    }
+                    return $this->decoration(NameDecoration::class, $id)?->slug;
+                }),
+
+            Schema\Integer::make('equippedCoverDecorationId')
+                ->nullable()
+                ->get(fn (User $user) => $this->points($user)?->current_cover_decoration_id),
+
+            Schema\Str::make('equippedCoverDecorationUrl')
+                ->nullable()
+                ->get(function (User $user): ?string {
+                    $id = $this->points($user)?->current_cover_decoration_id;
+                    if (! $id) {
+                        return null;
+                    }
+                    $deco = $this->decoration(CoverDecoration::class, $id);
+                    return $deco?->image_url ?: $deco?->image_path;
+                }),
+
+            Schema\Integer::make('equippedTitleDecorationId')
+                ->nullable()
+                ->get(fn (User $user) => $this->points($user)?->current_title_decoration_id),
+
+            Schema\Str::make('equippedTitleDecorationSlug')
+                ->nullable()
+                ->get(function (User $user): ?string {
+                    $id = $this->points($user)?->current_title_decoration_id;
+                    if (! $id) {
+                        return null;
+                    }
+                    return $this->decoration(TitleDecoration::class, $id)?->slug;
+                }),
+
+            Schema\Str::make('equippedTitleDecorationText')
+                ->nullable()
+                ->get(function (User $user): ?string {
+                    $id = $this->points($user)?->current_title_decoration_id;
+                    if (! $id) {
+                        return null;
+                    }
+                    return $this->decoration(TitleDecoration::class, $id)?->title_text;
+                }),
+
+            Schema\Integer::make('equippedPostHighlightDecorationId')
+                ->nullable()
+                ->get(fn (User $user) => $this->points($user)?->current_post_hl_decoration_id),
+
+            Schema\Str::make('equippedPostHighlightDecorationSlug')
+                ->nullable()
+                ->get(function (User $user): ?string {
+                    $id = $this->points($user)?->current_post_hl_decoration_id;
+                    if (! $id) {
+                        return null;
+                    }
+                    return $this->decoration(PostHighlightDecoration::class, $id)?->slug;
+                }),
+
+            Schema\Arr::make('ownedDecorationIds')
+                ->visible(function (User $user, Context $context) {
+                    return $context->getActor()->id === $user->id;
+                })
+                ->get(function (User $user) {
+                    // Cap at 2000 to keep the UserResource payload bounded
+                    // when a user has accumulated very many claims.
+                    return ShopClaim::where('user_id', $user->id)
+                        ->orderByDesc('id')
+                        ->limit(2000)
+                        ->get(['item_type', 'item_id', 'quantity'])
+                        ->map(fn ($c) => [
+                            'type' => $c->item_type,
+                            'id' => $c->item_id,
+                            'quantity' => (int) $c->quantity,
+                        ])
+                        ->toArray();
+                }),
+        ];
+    }
+
+    /**
+     * Read-side accessor — never writes. Lê pela relação `pointsBalance`
+     * (extend.php), que os endpoints Index/Show do UserResource carregam com
+     * `eagerLoad` — uma query para a página inteira em vez de uma por usuário.
+     * O WeakMap continua deduplicando os 14 getters do mesmo usuário e é a
+     * rede de segurança para caminhos sem eager-load (notificações, jobs),
+     * onde a relação cai no lazy-load do Eloquent.
+     *
+     * A criação da linha vive em {@see \Ramon\PointSystem\Listener\InitUserPoints}
+     * no evento {@see \Flarum\User\Event\Registered}, então ausência aqui só
+     * significa que o usuário é anterior à extensão — trate como "balance = 0".
+     */
+    protected function points(User $user): ?UserPoints
+    {
+        // offsetExists (não isset) — isset devolve false para null armazenado,
+        // e usuários anteriores à extensão legitimamente têm linha nula, que
+        // precisa ficar cacheada para não repetir o miss a cada getter.
+        if (! $this->pointsCache->offsetExists($user)) {
+            $this->pointsCache[$user] = $user->pointsBalance;
+        }
+        return $this->pointsCache[$user];
+    }
+
+    /**
+     * Memoized single-decoration lookup, deduped GLOBALLY by `{class}:{id}`.
+     * Every equipped-decoration field resolves its FK to a slug, title text, or
+     * image path; the same row is reused both across getters on one user (slug
+     * + title text on TitleDeco) AND across every user that equipped it — so a
+     * decoration shared by N users costs ONE SELECT, not N.
+     *
+     * @template T of \Flarum\Database\AbstractModel
+     * @param  class-string<T>  $class
+     * @return T|null
+     */
+    protected function decoration(string $class, int $id)
+    {
+        $key = $class.':'.$id;
+        if (! array_key_exists($key, $this->decorationCache)) {
+            $this->decorationCache[$key] = $class::find($id);
+        }
+        return $this->decorationCache[$key];
+    }
+
+    /**
+     * The owner always sees their own points. Managers always do.
+     * Everyone else (including guests) only sees them if the admin granted
+     * the `pointSystem.viewOthers` permission to their group.
+     */
+    protected function canSeePoints(User $user, Context $context): bool
+    {
+        $actor = $context->getActor();
+        if ($actor->id && $actor->id === $user->id) {
+            return true;
+        }
+        if ($actor->hasPermission('pointSystem.manage')) {
+            return true;
+        }
+        return $actor->hasPermission('pointSystem.viewOthers');
+    }
+}

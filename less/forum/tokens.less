@@ -1,0 +1,84 @@
+// ─────────────────────────────────────────────────────────────
+// Base das tiers da loja + página 404
+// Os tokens --ps-* saíram daqui para less/common/tokens.less, que é
+// importado tanto por forum.less quanto por admin.less.
+// ─────────────────────────────────────────────────────────────
+
+// ─── Rewards page tiers section ───────────────────────────────────────────────
+.PointSystemShop-tiers {
+  margin: 48px auto 32px;
+
+  h2 {
+    text-align: center;
+    margin: 0 0 6px;
+  }
+
+  &Grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+  }
+}
+
+.PointSystemShop-tier {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--ps-surface);
+  border: 1px solid var(--ps-border);
+  border-radius: var(--ps-radius);
+  position: relative;
+  transition: border-color var(--ps-t), box-shadow var(--ps-t), transform var(--ps-t);
+
+  &-badge {
+    flex: 0 0 auto;
+    // Tamanho publicado como token porque o recuo da linha de ação
+    // (design-system.less) o usa para alinhar o botão sob o texto.
+    width: var(--ps-tier-badge-size);
+    height: var(--ps-tier-badge-size);
+    border-radius: 50%;
+    background: var(--control-bg, #cccccc);
+    color: var(--text-color, #fff);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+
+  &-body { flex: 1 1 auto; min-width: 0; }
+  &-name { font-weight: 600; }
+  &-points { font-size: 12px; color: var(--muted-color, #888); }
+
+  &-progressBar {
+    height: 4px;
+    background: var(--control-bg, #eee);
+    border-radius: 999px;
+    margin-top: 6px;
+    overflow: hidden;
+
+    > span {
+      display: block;
+      height: 100%;
+      background: var(--primary-color, #6cc04a);
+      transition: width 0.4s ease;
+    }
+  }
+
+  &-check {
+    color: var(--primary-color, #6cc04a);
+    font-size: 20px;
+  }
+}
+
+.PointSystemShop-notFound {
+  text-align: center;
+  padding: 80px 20px;
+
+  h1 {
+    font-size: 72px;
+    margin: 0 0 10px;
+    color: var(--muted-color, #999);
+  }
+}
