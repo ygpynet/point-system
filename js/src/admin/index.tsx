@@ -7,6 +7,7 @@ import CoverDecoration from './models/CoverDecoration';
 import TitleDecoration from './models/TitleDecoration';
 import PostHighlightDecoration from './models/PostHighlightDecoration';
 import GroupOffer from './models/GroupOffer';
+import registerWidget from '../common/registerWidget';
 
 app.initializers.add('ramon/point-system', () => {
   // Register custom JSON:API resource types with the store so app.store.find()
@@ -73,4 +74,9 @@ app.initializers.add('ramon/point-system', () => {
       },
       'reply'
     );
+
+  // Required by fof/forum-widgets-core: widgets must be registered in both
+  // frontends even though only the forum renders them. Kept LAST so a failure
+  // here can never blank the extension page / permissions above.
+  registerWidget(app);
 });

@@ -17,7 +17,6 @@ use Flarum\Api\Resource\UserResource;
 use Flarum\Discussion\Event\Started as DiscussionStarted;
 use Flarum\Extend;
 use Flarum\Post\Event\Posted as PostPosted;
-use Flarum\User\Event\LoggedIn as UserLoggedIn;
 use Flarum\User\Event\Registered as UserRegistered;
 
 $extenders = [
@@ -44,11 +43,14 @@ $extenders = [
         ->hasOne('pointsBalance', \Ramon\PointSystem\Model\UserPoints::class, 'user_id'),
 
     // ── Event listeners — earn points on core actions ────────────────────────
+    // NOTE: the daily bonus is now MANUAL check-in only (CheckInController +
+    // the forum widget). The old LoggedIn listener and the session-resume
+    // middleware were removed 2026-08-24; recover them from git history
+    // (baseline commit) if an auto mode is ever wanted back.
     (new Extend\Event())
         ->listen(DiscussionStarted::class, Listener\AwardDiscussionPoints::class)
         ->listen(PostPosted::class, Listener\AwardPostPoints::class)
         ->listen(UserRegistered::class, Listener\InitUserPoints::class)
-        ->listen(UserLoggedIn::class, Listener\AwardDailyLoginBonus::class)
         // ── Notification dispatch (mirrors verified's event→listener pattern;
         //    NotificationSyncer fans out to all drivers incl. flarum/realtime) ──
         ->listen(\Ramon\PointSystem\Event\PointsManuallyChanged::class, Listener\SendNotificationWhenPointsChanged::class)
@@ -107,6 +109,8 @@ $extenders = [
         ->post('/point-system/cover-decoration/upload', 'pointSystem.coverDeco.upload', Controller\UploadCoverDecorationController::class)
         ->delete('/point-system/cover-decoration/{id}', 'pointSystem.coverDeco.delete', Controller\DeleteCoverDecorationController::class)
         ->post('/point-system/award', 'pointSystem.award', Controller\ManualAwardController::class)
+        ->post('/point-system/checkin', 'pointSystem.checkin', Controller\CheckInController::class)
+        ->post('/point-system/checkin/makeup', 'pointSystem.checkin.makeup', Controller\MakeUpController::class)
         ->post('/point-system/bulk-award', 'pointSystem.bulkAward', Controller\BulkAwardController::class)
         ->post('/point-system/grant', 'pointSystem.grant', Controller\GrantItemController::class)
         // ── Trades ──────────────────────────────────────────────────────
@@ -140,7 +144,10 @@ $extenders = [
         ->serializeToForum('pointSystem.points_per_like_received', 'point-system.points_per_like_received', 'intval')
         ->serializeToForum('pointSystem.points_per_like_given', 'point-system.points_per_like_given', 'intval')
         ->serializeToForum('pointSystem.points_per_registration', 'point-system.points_per_registration', 'intval')
-        ->serializeToForum('pointSystem.daily_login_bonus', 'point-system.daily_login_bonus', 'intval')
+        ->serializeToForum('pointSystem.checkin_base_points', 'point-system.checkin_base_points', 'intval')
+        ->serializeToForum('pointSystem.checkin_per_day_extra', 'point-system.checkin_per_day_extra', 'intval')
+        ->serializeToForum('pointSystem.checkin_growth_cap_days', 'point-system.checkin_growth_cap_days', 'intval')
+        ->serializeToForum('pointSystem.checkin_makeup_cost', 'point-system.checkin_makeup_cost', 'intval')
         ->serializeToForum('pointSystem.currency_name', 'point-system.currency_name')
         ->serializeToForum('pointSystem.currency_icon', 'point-system.currency_icon')
         ->serializeToForum('pointSystem.points_short', 'point-system.points_short')
@@ -166,7 +173,11 @@ $extenders = [
         ->default('point-system.points_per_like_received', 2)
         ->default('point-system.points_per_like_given', 1)
         ->default('point-system.points_per_registration', 50)
-        ->default('point-system.daily_login_bonus', 5)
+        ->default('point-system.checkin_base_points', 5)
+        ->default('point-system.checkin_per_day_extra', 1)
+        ->default('point-system.checkin_growth_cap_days', 7)
+        ->default('point-system.checkin_makeup_cost', 10)
+        ->default('point-system.checkin_makeup_max_streak', 3)
         ->default('point-system.currency_name', 'Points')
         ->default('point-system.currency_icon', 'fas fa-coins')
         ->default('point-system.points_short', 'pts')

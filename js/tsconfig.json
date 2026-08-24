@@ -13,6 +13,10 @@
       "flarum/*": [
         "../vendor/flarum/core/js/dist-typings/*",
         "../../../vendor/flarum/core/js/dist-typings/*"
+      ],
+      "ext:fof/forum-widgets-core/*": [
+        "../vendor/fof/forum-widgets-core/js/dist-typings/*",
+        "../../../vendor/fof/forum-widgets-core/js/dist-typings/*"
       ]
     }
   }

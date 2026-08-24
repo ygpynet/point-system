@@ -7,6 +7,7 @@ namespace Ramon\PointSystem\Api;
 use Flarum\Api\Context;
 use Flarum\Api\Schema;
 use Flarum\User\User;
+use Illuminate\Database\ConnectionInterface;
 use Ramon\PointSystem\Model\AvatarDecoration;
 use Ramon\PointSystem\Model\CoverDecoration;
 use Ramon\PointSystem\Model\NameDecoration;
@@ -14,6 +15,8 @@ use Ramon\PointSystem\Model\PostHighlightDecoration;
 use Ramon\PointSystem\Model\ShopClaim;
 use Ramon\PointSystem\Model\TitleDecoration;
 use Ramon\PointSystem\Model\UserPoints;
+use Ramon\PointSystem\Support\CheckInSettings;
+use Ramon\PointSystem\Support\DayBoundary;
 use WeakMap;
 
 class UserFields
@@ -49,8 +52,10 @@ class UserFields
      */
     protected array $decorationCache = [];
 
-    public function __construct()
-    {
+    public function __construct(
+        protected CheckInSettings $checkin,
+        protected ConnectionInterface $db,
+    ) {
         $this->pointsCache = new WeakMap();
     }
 
@@ -149,6 +154,73 @@ class UserFields
                         return null;
                     }
                     return $this->decoration(PostHighlightDecoration::class, $id)?->slug;
+                }),
+
+            Schema\Integer::make('pointCheckinStreak')
+                ->visible(fn (User $user, Context $context) => $context->getActor()->id === $user->id)
+                ->get(fn (User $user) => $this->points($user)?->checkin_streak ?? 0),
+
+            Schema\Boolean::make('pointCheckinDoneToday')
+                ->visible(fn (User $user, Context $context) => $context->getActor()->id === $user->id)
+                ->get(fn (User $user): bool => $this->points($user)?->last_checkin_date === DayBoundary::today()),
+
+            Schema\Integer::make('pointCheckinNextReward')
+                ->visible(fn (User $user, Context $context) => $context->getActor()->id === $user->id)
+                ->get(function (User $user) {
+                    $row = $this->points($user);
+                    if (! $this->checkin->enabled()) {
+                        return 0;
+                    }
+                    $last = $row?->last_checkin_date;
+                    if ($last !== null && $last === DayBoundary::today()) {
+                        return 0;
+                    }
+                    $consecutive = $last !== null && $last === DayBoundary::yesterday();
+                    $day = $consecutive ? ((int) ($row?->checkin_streak ?? 0)) + 1 : 1;
+
+                    return $this->checkin->rewardForDay($day);
+                }),
+
+            Schema\Boolean::make('pointCheckinCanMakeup')
+                ->visible(fn (User $user, Context $context) => $context->getActor()->id === $user->id)
+                ->get(fn (User $user): bool => $this->checkin->canMakeup($this->points($user))),
+
+            Schema\Integer::make('pointCheckinMakeupRemaining')
+                ->visible(fn (User $user, Context $context) => $context->getActor()->id === $user->id)
+                ->get(function (User $user) {
+                    $max = $this->checkin->makeupMax();
+
+                    return max(0, $max - (int) ($this->points($user)?->checkin_makeup_count ?? 0));
+                }),
+
+            Schema\Integer::make('pointCheckinRankToday')
+                ->nullable()
+                ->visible(fn (User $user, Context $context) => $context->getActor()->id === $user->id)
+                ->get(function (User $user) {
+                    if (! $this->checkin->enabled()) {
+                        return null;
+                    }
+                    $row = $this->points($user);
+                    if ($row === null || $row->last_checkin_date !== DayBoundary::today()) {
+                        return null;
+                    }
+
+                    return (int) ($this->db->table('point_system_checkin_days')
+                        ->where('user_id', $user->id)
+                        ->where('date', DayBoundary::today())
+                        ->value('seq') ?? 0) ?: null;
+                }),
+
+            Schema\Integer::make('pointCheckinTodayTotal')
+                ->visible(fn (User $user, Context $context) => $context->getActor()->id === $user->id)
+                ->get(function (User $user) {
+                    if (! $this->checkin->enabled()) {
+                        return 0;
+                    }
+
+                    return (int) $this->db->table('point_system_checkin_days')
+                        ->where('date', DayBoundary::today())
+                        ->count();
                 }),
 
             Schema\Arr::make('ownedDecorationIds')

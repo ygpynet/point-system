@@ -72,7 +72,11 @@ const SECTIONS: SectionDef[] = [
       { key: 'point-system.points_per_like_received', transKey: 'points_per_like_received', type: 'number' },
       { key: 'point-system.points_per_like_given', transKey: 'points_per_like_given', type: 'number' },
       { key: 'point-system.points_per_registration', transKey: 'points_per_registration', type: 'number' },
-      { key: 'point-system.daily_login_bonus', transKey: 'daily_login_bonus', type: 'number' },
+      { key: 'point-system.checkin_base_points', transKey: 'checkin_base_points', type: 'number' },
+      { key: 'point-system.checkin_per_day_extra', transKey: 'checkin_per_day_extra', type: 'number' },
+      { key: 'point-system.checkin_growth_cap_days', transKey: 'checkin_growth_cap_days', type: 'number' },
+      { key: 'point-system.checkin_makeup_cost', transKey: 'checkin_makeup_cost', type: 'number' },
+      { key: 'point-system.checkin_makeup_max_streak', transKey: 'checkin_makeup_max_streak', type: 'number' },
     ],
   },
 ];

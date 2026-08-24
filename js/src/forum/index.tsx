@@ -29,6 +29,7 @@ import { applyAvatarDecoration } from './utils/applyAvatarDecoration';
 import { applyNameDecorationClass } from './utils/applyNameDecoration';
 import { pointsLabel } from '../common/utils/pointsLabel';
 import { safeCssUrl } from '../common/utils/safeCssUrl';
+import registerWidget from '../common/registerWidget';
 
 declare const m: Mithril.Static;
 
@@ -332,6 +333,10 @@ app.initializers.add('ramon/point-system', () => {
       if (node) items.add('pointSystem-userTitle', node, 48);
     }
   });
+
+  // ── Check-in widget (fof/forum-widgets-core) — kept LAST so its failure
+  // can never take down the registrations above.
+  registerWidget(app);
 });
 
 function pointsBadge(user: User): Mithril.Children {

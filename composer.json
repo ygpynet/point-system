@@ -25,7 +25,8 @@
         "source": "https://github.com/ram0ng1/point-system"
     },
     "require": {
-        "flarum/core": "^2.0.0"
+        "flarum/core": "^2.0.0",
+        "fof/forum-widgets-core": "^2.0.0"
     },
     "suggest": {
         "flarum/gdpr": "Exporta, anonimiza e apaga saldo, extrato, resgates e trocas junto com os dados do usuário (^2.0).",

@@ -1,0 +1,37 @@
+ramon-point-system:
+  forum:
+    checkin:
+      widget_title: "每日签到"
+      action: "签到"
+      done: "已签到"
+      streak: "{count, plural, =0 {还没有签到} other {已连续签到 # 天}}"
+      streak_title: "连续签到天数"
+      reward_today: "本次签到 +{amount} 积分"
+      rank_today: "你今天是第 {rank} 位签到的用户"
+      today_total: "今天已有 {count} 人签到"
+      success_rank: "签到成功！+{amount} 积分，今日第 {rank} 位（已连续 {streak} 天）"
+      growth_hint: "连签奖励每日递增，满 {days} 天后封顶"
+      makeup_action: "补签（-{cost} 积分）"
+      makeup_title: "消耗 {cost} 积分补上漏掉的那一天（还可补 {remaining} 次）"
+      makeup_success: "补签成功！连续天数 +1，-{cost} 积分（已连续 {streak} 天）"
+      makeup_error_limit: "已达最大连续补签次数，请先正常签到。"
+      makeup_error_insufficient: "积分不足，无法补签。"
+      error: "签到失败，请重试。"
+    nav:
+      shop: "积分商城"
+      my_decorations: "我的装扮"
+    session_dropdown:
+      my_decorations: "我的装扮"
+      trades: "交易"
+  admin:
+    rules:
+      checkin_base_points: "签到基础奖励（第1天）"
+      checkin_base_points_help: "连续签到第 1 天获得的积分，设为 0 关闭整个签到功能。"
+      checkin_per_day_extra: "每日递增积分"
+      checkin_per_day_extra_help: "连续天数每多 1 天，当日签到多得该积分。"
+      checkin_growth_cap_days: "递增封顶天数"
+      checkin_growth_cap_days_help: "连续签到超过该天数后，每日奖励不再增长并固定下来。"
+      checkin_makeup_cost: "补签消耗积分"
+      checkin_makeup_cost_help: "每次补签从余额扣除的积分数，设为 0 关闭补签功能。"
+      checkin_makeup_max_streak: "最大连续补签次数"
+      checkin_makeup_max_streak_help: "两次正常签到之间最多可使用的补签次数。"

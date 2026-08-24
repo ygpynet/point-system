@@ -19,6 +19,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $current_cover_decoration_id
  * @property int|null $current_title_decoration_id
  * @property int|null $current_post_hl_decoration_id
+ * @property int $checkin_streak
+ * @property int $checkin_makeup_count Make-ups used since the last real check-in.
+ * @property string|null $last_checkin_date Plain 'Y-m-d' DATE — deliberately NOT cast,
+ *                                          compared as a string against DayBoundary::today().
  * @property \Carbon\Carbon|null $last_daily_bonus_at
  */
 class UserPoints extends AbstractModel
@@ -30,6 +34,8 @@ class UserPoints extends AbstractModel
     protected $casts = [
         'balance' => 'integer',
         'lifetime' => 'integer',
+        'checkin_streak' => 'integer',
+        'checkin_makeup_count' => 'integer',
         'current_avatar_decoration_id' => 'integer',
         'current_name_decoration_id' => 'integer',
         'current_cover_decoration_id' => 'integer',
@@ -42,6 +48,9 @@ class UserPoints extends AbstractModel
         'user_id',
         'balance',
         'lifetime',
+        'checkin_streak',
+        'checkin_makeup_count',
+        'last_checkin_date',
         'current_avatar_decoration_id',
         'current_name_decoration_id',
         'current_cover_decoration_id',
