@@ -55,6 +55,17 @@ ramon-point-system:
     session_dropdown:
       my_decorations: "My decorations"
       trades: "Trades"
+    post_controls:
+      tip: "Tip"
+    tip_modal:
+      title: "Tip this post"
+      your_balance: "Your balance"
+      select_amount: "Select amount"
+      custom_amount: "Custom amount"
+      custom_placeholder: "Enter custom amount"
+      confirm_tip: "Confirm tip"
+      success: "Tip sent! {amount} points transferred"
+      error: "Tip failed. Please try again"
     trades_page:
       title: "Trades"
       subtitle: "Trade decorations and points with other users. Both sides must accept before a trade completes."
@@ -362,6 +373,12 @@ ramon-point-system:
       checkin_makeup_cost_help: "Points spent per paid make-up check-in. 0 disables make-ups."
       checkin_makeup_max_streak: "Max consecutive make-ups"
       checkin_makeup_max_streak_help: "How many make-ups can be used in a row before a real check-in is required."
+      section_tip_title: "Post tipping"
+      section_tip_help: "Configure the post tipping feature. Users can tip post authors with points."
+      tip_enabled: "Enable post tipping"
+      tip_enabled_help: "When on, a tip button appears in the post action bar."
+      tip_preset_amounts: "Preset amounts"
+      tip_preset_amounts_help: "JSON array format, e.g. [5,10,15,20]. Users can quickly select these amounts when tipping."
     avatar:
       title: "Avatar frame decorations"
       help: "Upload PNG / GIF / WebP / APNG frames that float over the user's avatar (Discord style)."

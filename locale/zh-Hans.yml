@@ -23,6 +23,17 @@ ramon-point-system:
     session_dropdown:
       my_decorations: "我的装扮"
       trades: "交易"
+    post_controls:
+      tip: "打赏"
+    tip_modal:
+      title: "打赏帖子"
+      your_balance: "当前余额"
+      select_amount: "选择金额"
+      custom_amount: "自定义金额"
+      custom_placeholder: "输入自定义金额"
+      confirm_tip: "确认打赏"
+      success: "打赏成功！已转出 {amount} 积分"
+      error: "打赏失败，请重试"
   admin:
     rules:
       checkin_base_points: "签到基础奖励（第1天）"
@@ -35,3 +46,9 @@ ramon-point-system:
       checkin_makeup_cost_help: "每次补签从余额扣除的积分数，设为 0 关闭补签功能。"
       checkin_makeup_max_streak: "最大连续补签次数"
       checkin_makeup_max_streak_help: "两次正常签到之间最多可使用的补签次数。"
+      section_tip_title: "打赏功能"
+      section_tip_help: "配置帖子打赏功能，用户可以给帖子作者打赏积分。"
+      tip_enabled: "启用打赏功能"
+      tip_enabled_help: "开启后，帖子操作栏将显示打赏按钮。"
+      tip_preset_amounts: "预设金额"
+      tip_preset_amounts_help: "JSON 数组格式，如 [5,10,15,20]。用户打赏时可快速选择这些金额。"

@@ -55,6 +55,17 @@ ramon-point-system:
     session_dropdown:
       my_decorations: "Minhas decorações"
       trades: "Trocas"
+    post_controls:
+      tip: "Gorjeta"
+    tip_modal:
+      title: "Dar gorjeta neste post"
+      your_balance: "Seu saldo"
+      select_amount: "Selecionar valor"
+      custom_amount: "Valor personalizado"
+      custom_placeholder: "Digite um valor"
+      confirm_tip: "Confirmar gorjeta"
+      success: "Gorjeta enviada! {amount} pontos transferidos"
+      error: "Falha ao enviar gorjeta. Tente novamente"
     trades_page:
       title: "Trocas"
       subtitle: "Troque decorações e pontos com outros usuários. Os dois lados precisam aceitar para a troca ser concluída."
@@ -362,6 +373,12 @@ ramon-point-system:
       checkin_makeup_cost_help: "Pontos gastos por reposição. 0 desativa as reposições."
       checkin_makeup_max_streak: "Máximo de reposições consecutivas"
       checkin_makeup_max_streak_help: "Quantas reposições seguidas podem ser usadas antes de um check-in real."
+      section_tip_title: "Gorjetas nos posts"
+      section_tip_help: "Configure a funcionalidade de gorjetas nos posts. Os usuários podem dar gorjetas em pontos para os autores dos posts."
+      tip_enabled: "Ativar gorjetas"
+      tip_enabled_help: "Quando ativo, o botão de gorjeta aparece na barra de ações dos posts."
+      tip_preset_amounts: "Valores predefinidos"
+      tip_preset_amounts_help: "Formato array JSON, ex.: [5,10,15,20]. Os usuários podem selecionar rapidamente esses valores ao dar gorjeta."
     avatar:
       title: "Decorações de moldura de avatar"
       help: "Importe PNG / GIF / WebP / APNG de moldura que flutua sobre o avatar do usuário (estilo Discord)."

@@ -113,6 +113,7 @@ $extenders = [
         ->post('/point-system/checkin/makeup', 'pointSystem.checkin.makeup', Controller\MakeUpController::class)
         ->post('/point-system/bulk-award', 'pointSystem.bulkAward', Controller\BulkAwardController::class)
         ->post('/point-system/grant', 'pointSystem.grant', Controller\GrantItemController::class)
+        ->post('/point-system/tip', 'pointSystem.tip', Controller\TipPostController::class)
         // ── Trades ──────────────────────────────────────────────────────
         ->get('/point-system/trades', 'pointSystem.trades.list', Controller\ListTradesController::class)
         ->post('/point-system/trades', 'pointSystem.trades.open', Controller\OpenTradeController::class)
@@ -167,6 +168,8 @@ $extenders = [
         ->serializeToForum('pointSystem.hide_badges_with_avatar_deco', 'point-system.hide_badges_with_avatar_deco', 'boolval')
         ->serializeToForum('pointSystem.trade_enabled', 'point-system.trade_enabled', 'boolval')
         ->serializeToForum('pointSystem.user_submissions_enabled', 'point-system.user_submissions_enabled', 'boolval')
+        ->serializeToForum('pointSystem.tip_enabled', 'point-system.tip_enabled', 'boolval')
+        ->serializeToForum('pointSystem.tip_preset_amounts', 'point-system.tip_preset_amounts')
         ->default('point-system.enabled', true)
         ->default('point-system.points_per_discussion', 10)
         ->default('point-system.points_per_post', 5)
@@ -196,7 +199,9 @@ $extenders = [
         ->default('point-system.avatar_deco_in_lists', true)
         ->default('point-system.hide_badges_with_avatar_deco', false)
         ->default('point-system.trade_enabled', true)
-        ->default('point-system.user_submissions_enabled', false),
+        ->default('point-system.user_submissions_enabled', false)
+        ->default('point-system.tip_enabled', true)
+        ->default('point-system.tip_preset_amounts', '[5,10,15,20]'),
 ];
 
 // ── GDPR (opcional) ──────────────────────────────────────────────────────────

@@ -25,6 +25,7 @@ import TradeRequestedNotification from './components/TradeRequestedNotification'
 import TradeAcceptedNotification from './components/TradeAcceptedNotification';
 import TradeCompletedNotification from './components/TradeCompletedNotification';
 import TradeModal from './components/TradeModal';
+import TipPostModal from './components/TipPostModal';
 import { applyAvatarDecoration } from './utils/applyAvatarDecoration';
 import { applyNameDecorationClass } from './utils/applyNameDecoration';
 import { pointsLabel } from '../common/utils/pointsLabel';
@@ -282,6 +283,36 @@ app.initializers.add('ramon/point-system', () => {
         75
       );
     }
+  });
+
+  // ── "Tip" button in the post action bar ─────────────────────────────────
+  // Flarum 2 exposes CommentPost.actionItems as an ItemList that renders the
+  // Reply/Like/… buttons in `.Post-actions > ul`. Adding here is the canonical
+  // (Mithril-safe) hook — DOM injection gets wiped on every redraw.
+  // NOTE: the enabled-check runs INSIDE the callback (not at init time) because
+  // `app.forum` isn't populated when initializers run; it is available by the
+  // time a post actually renders.
+  extend(CommentPost.prototype, 'actionItems', function (this: any, items: any) {
+    if (!setting('pointSystem.tip_enabled', true)) return;
+    const post = this.attrs.post;
+    if (!post) return;
+    const author = post.user?.();
+    if (!author) return;
+    if (!app.session.user) return;
+    // Cannot tip yourself.
+    if (Number(app.session.user.id?.()) === Number(author.id?.())) return;
+
+    items.add(
+      'pointSystem-tip',
+      <Button
+        className="Button Button--link"
+        icon="fas fa-gift"
+        onclick={() => app.modal.show(TipPostModal, { post })}
+      >
+        {app.translator.trans('ramon-point-system.forum.post_controls.tip')}
+      </Button>,
+      15
+    );
   });
 
   // ── Points badge + custom title in the post header ─────────────────────

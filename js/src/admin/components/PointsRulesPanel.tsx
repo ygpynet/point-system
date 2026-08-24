@@ -79,6 +79,13 @@ const SECTIONS: SectionDef[] = [
       { key: 'point-system.checkin_makeup_max_streak', transKey: 'checkin_makeup_max_streak', type: 'number' },
     ],
   },
+  {
+    transKey: 'tip',
+    fields: [
+      { key: 'point-system.tip_enabled', transKey: 'tip_enabled', type: 'bool', defaultBool: true },
+      { key: 'point-system.tip_preset_amounts', transKey: 'tip_preset_amounts', type: 'text' },
+    ],
+  },
 ];
 
 export default class PointsRulesPanel extends Component {
