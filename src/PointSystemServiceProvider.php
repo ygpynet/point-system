@@ -16,8 +16,13 @@ namespace Ramon\PointSystem;
 use Flarum\Foundation\AbstractServiceProvider;
 use Ramon\PointSystem\Model\GroupOffer;
 use Ramon\PointSystem\Points\PointEarnerRegistry;
+use Ramon\PointSystem\Points\PointsRepositoryInterface;
+use Ramon\PointSystem\Points\PostTipCounter;
+use Ramon\PointSystem\Points\TipCounterInterface;
+use Ramon\PointSystem\Points\TipRateLimiter;
 use Ramon\PointSystem\Repository\PointsRepository;
 use Ramon\PointSystem\Support\DecorationRegistry;
+use Ramon\PointSystem\Support\PointReason;
 
 class PointSystemServiceProvider extends AbstractServiceProvider
 {
@@ -25,8 +30,18 @@ class PointSystemServiceProvider extends AbstractServiceProvider
     public function register(): void
     {
         $this->container->singleton(PointsRepository::class);
+        // Bind the public contract to the concrete impl so third-party extensions
+        // can type-hint PointsRepositoryInterface and stay decoupled.
+        $this->container->singleton(PointsRepositoryInterface::class, fn ($c) => $c->make(PointsRepository::class));
         $this->container->singleton(PointEarnerRegistry::class);
         $this->container->singleton(DecorationRegistry::class, fn () => DecorationRegistry::builtIn());
+        // Seeded once with the built-in reason codes; long-running workers reuse
+        // the singleton instead of rebuilding on every request.
+        $this->container->singleton(PointReason::class, fn () => PointReason::builtIn());
+        // Tip abuse guard: bind the counter abstraction to the Eloquent-backed
+        // implementation so TipRateLimiter stays unit-testable without a DB.
+        $this->container->singleton(TipCounterInterface::class, PostTipCounter::class);
+        $this->container->singleton(TipRateLimiter::class);
     }
 
     public function boot(): void

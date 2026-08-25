@@ -20,6 +20,8 @@ use Ramon\PointSystem\Controller\GrantItemController;
 use Ramon\PointSystem\Controller\ListAllTradesController;
 use Ramon\PointSystem\Controller\ListPendingSubmissionsController;
 use Ramon\PointSystem\Controller\ListTradesController;
+use Ramon\PointSystem\Controller\ListTransactionsController;
+use Ramon\PointSystem\Controller\ListUserTransactionsController;
 use Ramon\PointSystem\Controller\MakeUpController;
 use Ramon\PointSystem\Controller\ManualAwardController;
 use Ramon\PointSystem\Controller\ModerateSubmissionController;
@@ -69,7 +71,10 @@ class ApiRoutesModule implements ModuleInterface
                 ->post('/point-system/submissions/{type}/{id:[0-9]+}/{action}', 'pointSystem.submissions.moderate', ModerateSubmissionController::class)
                 // ── Admin trades dashboard ────────────────────────────────────
                 ->get('/point-system/admin/trades', 'pointSystem.admin.trades.list', ListAllTradesController::class)
-                ->post('/point-system/admin/trades/{id:[0-9]+}/revert', 'pointSystem.admin.trades.revert', RevertTradeController::class),
+                ->post('/point-system/admin/trades/{id:[0-9]+}/revert', 'pointSystem.admin.trades.revert', RevertTradeController::class)
+                // ── Points ledger (积分流水) ───────────────────────────────────
+                ->get('/point-system/admin/transactions', 'pointSystem.admin.transactions.list', ListTransactionsController::class)
+                ->get('/point-system/users/{id:[0-9]+}/transactions', 'pointSystem.user.transactions.list', ListUserTransactionsController::class),
         ];
     }
 }

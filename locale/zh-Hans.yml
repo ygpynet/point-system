@@ -1,7 +1,27 @@
 ygpynet-point-system:
+  reasons:
+    discussion_started: 发起讨论
+    post_posted: 发表回复
+    user_registered: 注册账户
+    like_received: 收到点赞
+    checkin: 每日签到
+    daily_login: 每日登录
+    tier_claim: 加入用户组
+    shop_claim: 免费领取
+    shop_purchase: 商城购买
+    group_purchase: 购买用户组
+    tip_out: 打赏支出
+    tip_in: 收到打赏
+    admin_adjustment: 管理员调整
+    manual: 手动发放
+    trade_credit: 交易收入
+    trade_debit: 交易支出
+    discussion_started_revert: 撤销发起讨论
+    post_posted_revert: 撤销发表回复
+    user_registered_revert: 撤销注册
   admin:
     all_trades:
-      col_id: '#'
+      col_id: "#"
       col_initiator: 发起人
       col_offer: 交易内容
       col_recipient: 接收人
@@ -14,11 +34,11 @@ ygpynet-point-system:
       filter_pending: 进行中
       help: 已只读方式，查看系统所有用户的所有交易，以及交易人员和内容详情。
       initiator_offer: 来自发起人
-      items_short: '{count, plural, one {#个道具} other {#个道具}}'
+      items_short: "{count, plural, one {#个道具} other {#个道具}}"
       list_heading: 交易中心
       list_help: 按交易时间倒序排列，可以通过筛选功能，只浏进行中或未达成的交易。
       next: 下一页
-      page_x_of_y: '第{x}页/共{y}页'
+      page_x_of_y: "第{x}页/共{y}页"
       prev: 上一页
       recipient_offer: 来自接收人
       refresh: 刷新
@@ -26,6 +46,28 @@ ygpynet-point-system:
       status_completed: 已完成
       status_pending: 进行中
       title: 所有交易
+    transactions:
+      col_id: "#"
+      col_user: 用户
+      col_amount: 变动
+      col_reason: 原因
+      col_reference: 关联
+      col_created: 时间
+      empty: 暂无符合条件的积分流水记录。
+      filter_user: 用户
+      filter_user_ph: "用户名或 ID"
+      filter_reason: 原因代码
+      filter_reason_ph: "如 post.posted"
+      filter_from: 起始日期
+      filter_to: 截止日期
+      apply: 筛选
+      refresh: 刷新
+      export: 导出 CSV
+      help: 以只读方式查看系统内所有用户的积分流水，按时间倒序排列，可按用户、原因代码及日期范围筛选。
+      page_x_of_y: "第{x}页/共{y}页"
+      prev: 上一页
+      next: 下一页
+      title: 积分流水
     availability:
       allowed_groups: 用户组限制
       allowed_groups_help: 当选择一个或多个用户组后，只有这些用户组的用户可以兑换此道具。留空表示无用户组限制。
@@ -36,19 +78,19 @@ ygpynet-point-system:
       groups_loading: 正在加载用户组…
       is_listed: 在道具商店中公开展示
       is_listed_help: 关闭后，该道具将不会展示在道具商店中，只能由管理员发放给指定的用户。
-      legend: '可用限制&兑换限制'
+      legend: "可用限制&兑换限制"
       max_claims: 最大可兑换数量（总计）
       max_claims_help: 兑换数量达到限制值后，自动锁定。
       max_claims_placeholder: 无限制
       unlisted_tag: 已隐藏
     avatar:
-      edit_title: '编辑头像边框–{name}'
+      edit_title: "编辑头像边框–{name}"
       existing: 已有边框
       field_description: 描述
       field_image: 边框图片
       field_image_help: 推荐：256×256像素的透明PNG、APNG或GIF。最大4MB。
       field_image_url: 图片URL
-      field_image_url_help: '粘贴图片的https://网址。这能节省服务器磁盘占用，但必须保障图片网址可访问，否则头像边框将无法显示。'
+      field_image_url_help: "粘贴图片的https://网址。这能节省服务器磁盘占用，但必须保障图片网址可访问，否则头像边框将无法显示。"
       field_name: 名称
       field_price: 价格
       help: 上传PNG/GIF/WebP/APNG头像框，可悬浮覆盖在用户头像上（Discord风格）。
@@ -64,7 +106,7 @@ ygpynet-point-system:
     cancel: 取消
     confirm_delete: 确定删除吗？该操作无法撤回。
     cover:
-      edit_title: '编辑个人资料封面–{name}'
+      edit_title: "编辑个人资料封面–{name}"
       existing: 已有封面
       field_description: 描述
       field_image: 图片
@@ -88,8 +130,8 @@ ygpynet-point-system:
       ignore_limit: 忽略最大可兑换数量限制
       ignore_limit_help: 如该道具有最大可兑换数量限制，普通授予操作也会消耗此数量。选择此项后，本次授予将跳过该限制。
       submit: 授予
-      success: '{item}已成功授予{name}。'
-      title: '向用户授予{name}'
+      success: "{item}已成功授予{name}。"
+      title: "向用户授予{name}"
       user_not_found: 没有与此名称匹配的用户。
       username_help: 输入用户名或显示名称。
       username_label: 用户名
@@ -126,7 +168,7 @@ ygpynet-point-system:
       bulk_awarded: 已更新用户
       bulk_errors: 错误
       bulk_success: 批量调整已应用。
-      bulk_queued: '已为 {total} 个用户加入队列，积分将在后台队列处理完毕后应用。'
+      bulk_queued: "已为 {total} 个用户加入队列，积分将在后台队列处理完毕后应用。"
       balance: 余额
       field_amount: 数量
       field_amount_help: 正数为发放，负数为从余额扣除（不影响总计）。
@@ -143,10 +185,10 @@ ygpynet-point-system:
       create: 创建装饰
       create_title: 创建新装饰
       created: 装饰创建成功。
-      edit_title: '编辑用户名装饰–{name}'
+      edit_title: "编辑用户名装饰–{name}"
       existing: 已有装饰
       field_css: 自定义CSS（可选）
-      field_css_help: '支持两种模式。模式1：直接将CSS属性应用于用户名（例如「color: gold; font-weight: 700;」）。模式2：将&符号作为选择器占位符的完整CSS，支持 @keyframes、伪元素以及多规则。'
+      field_css_help: "支持两种模式。模式1：直接将CSS属性应用于用户名（例如「color: gold; font-weight: 700;」）。模式2：将&符号作为选择器占位符的完整CSS，支持 @keyframes、伪元素以及多规则。"
       field_description: 描述
       field_name: 名称
       field_preset: 预设
@@ -177,7 +219,7 @@ ygpynet-point-system:
       preset_stamp: 🔖印章
       preset_toxic: ☣剧毒
       preset_typer: ⌨️键盘
-      preset_underline: '〰 波浪'
+      preset_underline: "〰 波浪"
       preset_vhs: 📼磁带
       preset_wave: 🌊波浪
       preview: 实时预览
@@ -189,14 +231,15 @@ ygpynet-point-system:
       view_others: 查看其它用户的积分
       view_shop: 查看道具
       view_tip_list: 查看打赏名单
+      view_transactions: 查看积分流水
     post_hl:
       create: 创建高亮
       create_title: 创建高亮
       created: 高亮创建成功。
-      edit_title: '编辑帖子高亮–{name}'
+      edit_title: "编辑帖子高亮–{name}"
       existing: 已有高亮
       field_css: 自定义CSS（可选）
-      field_css_help: '使用「&」选择器占位符（匹配帖子容器）。'
+      field_css_help: "使用「&」选择器占位符（匹配帖子容器）。"
       field_description: 描述
       field_name: 名称
       field_preset: 预设
@@ -226,11 +269,11 @@ ygpynet-point-system:
       cover_deco_enabled: 启用个人资料封面
       cover_deco_enabled_help: 主开关。在用户个人资料页面和用户卡片中，展示已佩戴的封面横幅图片。
       currency_icon: 积分图标Class
-      currency_icon_help: 'FontAwesome的Class，例如fas fa-coins。'
+      currency_icon_help: "FontAwesome的Class，例如fas fa-coins。"
       currency_name: 积分名称
       currency_name_help: 积分的复数文本（中文不适用）。
-      daily_login_bonus: 登录有礼
-      daily_login_bonus_help: 用户每天第一次登录自动获得。
+      daily_earn_cap: 每日获得积分上限
+      daily_earn_cap_help: 用户每天最多可获得的积分数（0 表示不限制）。适用于发帖、点赞、签到等自然获得途径；管理员在后台手动发放，以及被打赏获得的积分，均不受此限制。
       deco_in_lists: 话题列表中展示装饰
       deco_in_lists_help: 在话题列表条目中用户名上展示装饰。
       deco_in_posts: 跟帖中展示装饰
@@ -280,17 +323,17 @@ ygpynet-point-system:
       title_deco_enabled_help: 主开关。在帖子的用户名旁边，展示已佩戴的标题勋章。
       trade_enabled: 启用赠送
       trade_enabled_help: 赠送功能的主开关。禁用后，赠送按钮和赠送页面将对所有用户不可见，等待中的赠送仍然可以取消。通过权限页面中的`向其他用户赠送装饰`权限选项，可以控制用户组的赠送权限。
-      unsaved: '{count}处待保存变更'
+      unsaved: "{count}处待保存变更"
       user_submissions_enabled: 允许用户上传装饰
       user_submissions_enabled_help: 启用后，注册用户可以自主提交装饰设计。用户提交内容位于待审核队列，必须审核通过后，才会进入道具中心。网址只适用于头像边框和个人资料封面装饰类型，文件上传仍需管理员操作。
       checkin_base_points: 签到基础奖励（第1天）
-      checkin_base_points_help: '连续签到第 1 天获得的积分，设为 0 关闭整个签到功能。'
+      checkin_base_points_help: "连续签到第 1 天获得的积分，设为 0 关闭整个签到功能。"
       checkin_per_day_extra: 每日递增积分
-      checkin_per_day_extra_help: '连续天数每多 1 天，当日签到多得该积分。'
+      checkin_per_day_extra_help: "连续天数每多 1 天，当日签到多得该积分。"
       checkin_growth_cap_days: 递增封顶天数
       checkin_growth_cap_days_help: 连续签到超过该天数后，每日奖励不再增长并固定下来。
       checkin_makeup_cost: 补签消耗积分
-      checkin_makeup_cost_help: '每次补签从余额扣除的积分数，设为 0 关闭补签功能。'
+      checkin_makeup_cost_help: "每次补签从余额扣除的积分数，设为 0 关闭补签功能。"
       checkin_makeup_max_streak: 最大连续补签次数
       checkin_makeup_max_streak_help: 两次正常签到之间最多可使用的补签次数。
       section_tip_title: 打赏功能
@@ -298,11 +341,13 @@ ygpynet-point-system:
       tip_enabled: 启用打赏功能
       tip_enabled_help: 开启后，帖子操作栏将显示打赏按钮。
       tip_preset_amounts: 预设金额
-      tip_preset_amounts_help: 'JSON 数组格式，如 [5,10,15,20]。用户打赏时可快速选择这些金额。'
+      tip_preset_amounts_help: "JSON 数组格式，如 [5,10,15,20]。用户打赏时可快速选择这些金额。"
+      tip_hourly_limit: 每用户每小时打赏上限
+      tip_hourly_limit_help: 单个用户每滚动小时最多可打赏的次数（0 = 不限制）。用于阻止刷赏以及小号之间转移积分（洗分）。
     save: 保存
     submissions:
       approve: 通过
-      approved_alert: '由「{name}」审核通过。'
+      approved_alert: "由「{name}」审核通过。"
       by: 提交人
       empty: 暂无待审核申请。
       help: 用户提交的装饰设计需要审核。审核通过的，设置价格并发布到道具商城；审核不通过的，道具商城不会显示（只显示在提交者的待处理列表中）。
@@ -311,11 +356,12 @@ ygpynet-point-system:
       queue_heading: 列表
       refresh: 刷新
       reject: 拒绝
-      rejected_alert: '由「{name}」审核拒绝。'
+      rejected_alert: "由「{name}」审核拒绝。"
       show_custom_css: 显示原始CSS
       title: 待确认装饰
     tabs:
       all_trades: 所有交易
+      transactions: 积分流水
       avatar: 头像边框
       cover: 个人资料封面
       groups: 自动用户组
@@ -332,9 +378,9 @@ ygpynet-point-system:
       created: 标题创建成功。
       existing: 已有头衔
       field_color: 主色
-      field_color_help: '用于渲染头衔勋章背景色的CSS颜色值（#hex，rgb()或颜色名称）。'
+      field_color_help: "用于渲染头衔勋章背景色的CSS颜色值（#hex，rgb()或颜色名称）。"
       field_css: 自定义CSS（可选）
-      field_css_help: '与名称装饰相同，支持属性列表和带有「&」占位符的完整CSS。'
+      field_css_help: "与名称装饰相同，支持属性列表和带有「&」占位符的完整CSS。"
       field_description: 描述
       field_name: 名称（管理员文本）
       field_price: 价格
@@ -379,7 +425,7 @@ ygpynet-point-system:
       help: 查看所有用户的积分余额和历史总计。
       next: 下一页
       no_results: 没有符合条件的用户。
-      page_x_of_y: '第{x}页/共{y}页'
+      page_x_of_y: "第{x}页/共{y}页"
       prev: 上一页
       search_placeholder: 搜索用户名或邮箱
       sort_balance: 按余额排序
@@ -389,7 +435,7 @@ ygpynet-point-system:
   forum:
     award_modal:
       add: 添加
-      added: '向{name}发放{amount}个积分。'
+      added: "向{name}发放{amount}个积分。"
       amount_help: 增加余额和总计积分；扣除余额（总计积分不变）。
       amount_label: 数量
       current_balance: 当前余额
@@ -397,10 +443,10 @@ ygpynet-point-system:
       reason_label: 理由（可选）
       reason_placeholder: 例如：论坛贡献
       remove: 移除
-      removed: '移除{name}的{amount}个积分。'
-      title: '管理{name}的积分'
+      removed: "移除{name}的{amount}个积分。"
+      title: "管理{name}的积分"
     badge:
-      tooltip: '{balance} {currency} （总计：{lifetime}）'
+      tooltip: "{balance} {currency} （总计：{lifetime}）"
     confirm:
       after_purchase: 购买后余额
       cancel: 取消
@@ -436,35 +482,35 @@ ygpynet-point-system:
       item_family_name: 昵称样式
       item_family_post_highlight: 帖子高亮
       item_family_title: 自定义头衔
-      item_granted: '{admin}向你授予了{family}「{item}」'
-      points_added: '{admin}向你发放了{amount}个积分'
-      points_removed: '{admin}移除了你的{amount}个积分'
-      tier_claimed: '你已加入{name}用户组！'
-      tier_excerpt: '阈值：永久{points}个积分'
-      trade_accepted: '{name}确认了交易，等待你确认后，交易将完成'
-      trade_completed: '与{name}的交易已完成'
-      trade_requested: '{name}希望与你进行交易'
-      post_tipped: '{name} 打赏了你的帖子，共 {amount} {unit}'
+      item_granted: "{admin}向你授予了{family}「{item}」"
+      points_added: "{admin}向你发放了{amount}个积分"
+      points_removed: "{admin}移除了你的{amount}个积分"
+      tier_claimed: "你已加入{name}用户组！"
+      tier_excerpt: "阈值：永久{points}个积分"
+      trade_accepted: "{name}确认了交易，等待你确认后，交易将完成"
+      trade_completed: "与{name}的交易已完成"
+      trade_requested: "{name}希望与你进行交易"
+      post_tipped: "{name} 打赏了你的帖子，共 {amount} {unit}"
       points_unit: 积分
     session_dropdown:
       my_decorations: 我的装扮
       trades: 交易
     shop:
-      truncated: '仅显示前 {count} 项。请在管理后台精简商品目录，或切换其他标签页查看全部。'
-      badge_ends_in_days: '{count, plural, one {#天后结束} other {#天后结束}}'
-      badge_ends_in_hours: '{count, plural, one {#小时后结束} other {#小时后结束}}'
-      badge_remaining: '{count, plural, one {剩余#个} other {剩余#个}}'
-      badge_starts_on: '开始于{date}'
-      by_creator: '由{name}创作'
+      truncated: "仅显示前 {count} 项。请在管理后台精简商品目录，或切换其他标签页查看全部。"
+      badge_ends_in_days: "{count, plural, one {#天后结束} other {#天后结束}}"
+      badge_ends_in_hours: "{count, plural, one {#小时后结束} other {#小时后结束}}"
+      badge_remaining: "{count, plural, one {剩余#个} other {剩余#个}}"
+      badge_starts_on: "开始于{date}"
+      by_creator: "由{name}创作"
       claim: 兑换
       claim_failed: 无法兑换此道具。
-      claimed: '{name}兑换成功！'
-      creator_tooltip: '该道具由{name}设计'
+      claimed: "{name}兑换成功！"
+      creator_tooltip: "该道具由{name}设计"
       empty: 暂无可用的内容。
       equip: 佩戴
       equip_failed: 无法佩戴此道具。
       equipped: 已佩戴
-      equipped_alert: '{name}佩戴成功'
+      equipped_alert: "{name}佩戴成功"
       equipped_label: 已佩戴
       lifetime: 总计
       login_to_claim: 登录
@@ -484,7 +530,7 @@ ygpynet-point-system:
       tier_claim: 加入用户组
       tier_claim_failed: 无法兑换此用户组。
       tier_claimed: 已加入
-      tier_claimed_alert: '已加入{name}！'
+      tier_claimed_alert: "已加入{name}！"
       tier_cost: 加入所需的积分
       tier_locked: 已锁定
       tier_not_enough: 积分不足
@@ -498,7 +544,7 @@ ygpynet-point-system:
       your_balance: 你的余额
     submit:
       color_label: 强调色（可选）
-      custom_css_help: '可选。使用「&」符号作为选择器占位符。CSS将在保存时自动优化。'
+      custom_css_help: "可选。使用「&」符号作为选择器占位符。CSS将在保存时自动优化。"
       custom_css_label: 自定义CSS（可选）
       description_label: 描述（可选）
       family_avatar: 头像边框
@@ -508,7 +554,7 @@ ygpynet-point-system:
       family_title: 自定义头衔
       image_file_help: 支持最大4MB的PNG/GIF/WebP/APNG。后续管理员上传时，会执行相同的校验。
       image_file_label: 图片文件
-      image_url_help: '直接链接到PNG/GIF/WebP/APNG图片的https://网址。'
+      image_url_help: "直接链接到PNG/GIF/WebP/APNG图片的https://网址。"
       image_url_label: 图片网址
       intro: 创作你的装饰。提交后，管理员将进行审核。审核通过的装饰，将展示在道具商店中。
       moderation_notice: 你的申请将提交至管理员，审核通过后方可显示在道具商店。
@@ -522,7 +568,7 @@ ygpynet-point-system:
       submitted_alert: 申请提交成功。管理员将进行审核。
       title_text_label: 勋章显示文本
       title_text_placeholder: 例如「自由の偶」
-      title_with: '提交新{family}'
+      title_with: "提交新{family}"
     trade:
       accept: 确认
       accepted_waiting_alert: 你已确认你的交易内容。在对方确认之前，交易将处于进行中状态。你现在可以关闭此窗口并随时返回查看。
@@ -560,10 +606,10 @@ ygpynet-point-system:
       status_cancelled: 交易已被取消。
       status_completed: 交易已完成！
       status_pending: 添加道具或积分。双方点击确认后完成交易。
-      their_offer: '{name}的交易内容'
+      their_offer: "{name}的交易内容"
       their_points: 对方提供的积分
       title_loading: 打开交易…
-      title_with: '与{name}的交易'
+      title_with: "与{name}的交易"
       unaccept: 拒绝
       your_offer: 你的交易内容
       your_points: 你提供的积分
@@ -573,7 +619,7 @@ ygpynet-point-system:
       retry: 重试
       history_empty: 暂无已完成或已取消的交易。
       history_heading: 已关闭的交易
-      items_short: '{count, plural, one {#个道具} other {#个道具}}'
+      items_short: "{count, plural, one {#个道具} other {#个道具}}"
       no_permission: 你所在的用户组没有交易权限。联系管理员咨询确认。
       open: 打开
       pending_empty: 暂无进行中的交易。
@@ -594,25 +640,40 @@ ygpynet-point-system:
       their_side: 对方的交易内容
       title: 交易中心
       your_side: 你的交易内容
+    transactions_page:
+      col_amount: 变动
+      col_reason: 原因
+      col_reference: 关联
+      col_created: 时间
+      empty: 暂无积分流水记录。
+      load_failed: 无法加载你的积分流水。请检查网络连接后重试。
+      page_x_of_y: "第{x}页/共{y}页"
+      prev: 上一页
+      next: 下一页
+      retry: 重试
+      subtitle: 你每一笔积分收入与支出的明细记录。
+      export: 导出 CSV
+      title: 积分流水
     user_controls:
       award_points: 管理积分
       trade: 交易中心
     user_profile:
       trades_link: 交易
+      transactions_link: 积分流水
     checkin:
       widget_title: 每日签到
       action: 签到
       done: 已签到
-      streak: '{count, plural, =0 {还没有签到} other {已连续签到 # 天}}'
+      streak: "{count, plural, =0 {还没有签到} other {已连续签到 # 天}}"
       streak_title: 连续签到天数
-      reward_today: '本次签到 +{amount} 积分'
-      rank_today: '你今天是第 {rank} 位签到的用户'
-      today_total: '今天已有 {count} 人签到'
-      success_rank: '签到成功！+{amount} 积分，今日第 {rank} 位（已连续 {streak} 天）'
-      growth_hint: '连签奖励每日递增，满 {days} 天后封顶'
-      makeup_action: '补签（-{cost} 积分）'
-      makeup_title: '消耗 {cost} 积分补上漏掉的那一天（还可补 {remaining} 次）'
-      makeup_success: '补签成功！连续天数 +1，-{cost} 积分（已连续 {streak} 天）'
+      reward_today: "本次签到 +{amount} 积分"
+      rank_today: "你今天是第 {rank} 位签到的用户"
+      today_total: "今天已有 {count} 人签到"
+      success_rank: "签到成功！+{amount} 积分，今日第 {rank} 位（已连续 {streak} 天）"
+      growth_hint: "连签奖励每日递增，满 {days} 天后封顶"
+      makeup_action: "补签（-{cost} 积分）"
+      makeup_title: "消耗 {cost} 积分补上漏掉的那一天（还可补 {remaining} 次）"
+      makeup_success: "补签成功！连续天数 +1，-{cost} 积分（已连续 {streak} 天）"
       makeup_error_limit: 已达最大连续补签次数，请先正常签到。
       makeup_error_insufficient: 积分不足，无法补签。
       error: 签到失败，请重试。
@@ -620,7 +681,7 @@ ygpynet-point-system:
       tip: 打赏
       tip_list: 打赏名单
     post:
-      tip_summary_title: '共收到打赏：{total} {unit}'
+      tip_summary_title: "共收到打赏：{total} {unit}"
       tip_unit: 积分
     tip_modal:
       title: 打赏帖子
@@ -629,9 +690,9 @@ ygpynet-point-system:
       custom_amount: 自定义金额
       custom_placeholder: 输入自定义金额
       confirm_tip: 确认打赏
-      success: '打赏成功！已转出 {amount} 积分'
+      success: "打赏成功！已转出 {amount} 积分"
       error: 打赏失败，请重试
     tip_list:
       title: 打赏名单
       empty: 暂无打赏。
-      total: '共 {total} 积分，来自 {count, plural, other {# 人}}'
+      total: "共 {total} 积分，来自 {count, plural, other {# 人}}"

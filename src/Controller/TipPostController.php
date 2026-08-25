@@ -8,13 +8,13 @@ use Flarum\Http\RequestUtil;
 use Flarum\Post\Post;
 use Flarum\User\Exception\NotAuthenticatedException;
 use Illuminate\Contracts\Events\Dispatcher;
-use Illuminate\Database\ConnectionInterface;
 use Laminas\Diactoros\Response\JsonResponse;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Ramon\PointSystem\Event\PostTipped;
 use Ramon\PointSystem\Model\PostTip;
+use Ramon\PointSystem\Points\TipRateLimiter;
 use Ramon\PointSystem\Repository\PointsRepository;
 
 /**
@@ -35,9 +35,9 @@ use Ramon\PointSystem\Repository\PointsRepository;
 class TipPostController implements RequestHandlerInterface
 {
     public function __construct(
-        protected ConnectionInterface $db,
         protected PointsRepository $points,
         protected Dispatcher $events,
+        protected TipRateLimiter $rateLimiter,
     ) {}
 
     #[\Override]
@@ -75,24 +75,31 @@ class TipPostController implements RequestHandlerInterface
             return new JsonResponse(['errors' => [['detail' => 'Points are disabled']]], 422);
         }
 
+        // Abuse guard: cap how many tips a single user may send per rolling hour
+        // so the endpoint can't be scripted to launder points or spam authors.
+        if ($this->rateLimiter->isLimited($actor->id)) {
+            return new JsonResponse(
+                ['errors' => [['detail' => 'Tip limit reached. Please try again later.']]],
+                429,
+            );
+        }
+
         try {
-            $this->db->transaction(function () use ($actor, $recipient, $postId, $amount) {
-                // Atomic, balance-checked (throws DomainException on shortfall),
-                // ledger + auto-group sync. Takes the actor row lock internally.
-                $this->points->deduct($actor, $amount, 'tip.out', Post::class, $postId);
+            // One atomic unit: the sender is balance-checked and debited while the
+            // recipient is credited, inside a single database transaction. If the
+            // sender can't cover it, NOTHING changes. Tips received bypass the
+            // daily earning cap. The ledger rows + auto-group sync happen inside
+            // each leg, and the tip record is written after the move commits.
+            $this->points->transfer($actor, $recipient, $amount, 'tip', Post::class, $postId);
 
-                // Same engine for the recipient: balance + lifetime + ledger.
-                $this->points->award($recipient, $amount, 'tip.in', Post::class, $postId);
-
-                // Record the tip so the post can show who tipped how much.
-                // Stackable by design — a repeat tip is a fresh row.
-                PostTip::create([
-                    'post_id' => $postId,
-                    'sender_id' => $actor->id,
-                    'recipient_id' => $recipient->id,
-                    'amount' => $amount,
-                ]);
-            });
+            // Record the tip so the post can show who tipped how much.
+            // Stackable by design — a repeat tip is a fresh row.
+            PostTip::create([
+                'post_id' => $postId,
+                'sender_id' => $actor->id,
+                'recipient_id' => $recipient->id,
+                'amount' => $amount,
+            ]);
         } catch (\DomainException $e) {
             return new JsonResponse(['errors' => [['detail' => 'Insufficient points']]], 422);
         } catch (\Throwable $e) {

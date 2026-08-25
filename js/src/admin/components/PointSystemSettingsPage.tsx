@@ -12,6 +12,7 @@ import GroupOffersPanel from './GroupOffersPanel';
 import ManualAwardPanel from './ManualAwardPanel';
 import PendingSubmissionsPanel from './PendingSubmissionsPanel';
 import AllTradesPanel from './AllTradesPanel';
+import TransactionsPanel from './TransactionsPanel';
 
 export default class PointSystemSettingsPage extends ExtensionPage {
   content() {
@@ -48,6 +49,9 @@ export default class PointSystemSettingsPage extends ExtensionPage {
         break;
       case 'all-trades':
         child = <AllTradesPanel />;
+        break;
+      case 'transactions':
+        child = <TransactionsPanel />;
         break;
       default:
         child = <PointsRulesPanel page={this} />;

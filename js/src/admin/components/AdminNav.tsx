@@ -14,6 +14,7 @@ export default function AdminNav(current: string) {
     ['manual', 'fas fa-hand-holding-usd', 'manual'],
     ['submissions', 'fas fa-inbox', 'submissions'],
     ['all-trades', 'fas fa-handshake', 'all_trades'],
+    ['transactions', 'fas fa-receipt', 'transactions'],
   ];
 
   const base = app.route('extension', { id: 'ygpynet-point-system' });

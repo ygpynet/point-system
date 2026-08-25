@@ -31,10 +31,28 @@ class PointTransaction extends AbstractModel
         'meta' => 'array',
     ];
 
-    protected $fillable = ['user_id', 'amount', 'reason', 'reference_type', 'reference_id', 'meta'];
+    protected $fillable = ['user_id', 'amount', 'reason', 'reference_type', 'reference_id', 'meta', 'dedupe_key'];
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Emit a global domain event the moment a ledger row is persisted, so other
+     * extensions can react to ANY point movement (earn / spend / revert / tip)
+     * without hooking each call site. Decoupled from the UserPoints event
+     * generator: this fires once per written row regardless of who credited it.
+     */
+    protected static function booted(): void
+    {
+        static::created(function (PointTransaction $tx) {
+            try {
+                $dispatcher = app(\Illuminate\Contracts\Events\Dispatcher::class);
+                $dispatcher->dispatch(new \Ramon\PointSystem\Event\PointsTransactionRecorded($tx));
+            } catch (\Throwable) {
+                // Never let observability break a financial write.
+            }
+        });
     }
 }

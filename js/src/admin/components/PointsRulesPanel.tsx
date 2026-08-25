@@ -77,15 +77,17 @@ const SECTIONS: SectionDef[] = [
       { key: 'point-system.checkin_growth_cap_days', transKey: 'checkin_growth_cap_days', type: 'number' },
       { key: 'point-system.checkin_makeup_cost', transKey: 'checkin_makeup_cost', type: 'number' },
       { key: 'point-system.checkin_makeup_max_streak', transKey: 'checkin_makeup_max_streak', type: 'number' },
+      { key: 'point-system.daily_earn_cap', transKey: 'daily_earn_cap', type: 'number' },
     ],
   },
-  {
-    transKey: 'tip',
-    fields: [
-      { key: 'point-system.tip_enabled', transKey: 'tip_enabled', type: 'bool', defaultBool: true },
-      { key: 'point-system.tip_preset_amounts', transKey: 'tip_preset_amounts', type: 'text' },
-    ],
-  },
+    {
+      transKey: 'tip',
+      fields: [
+        { key: 'point-system.tip_enabled', transKey: 'tip_enabled', type: 'bool', defaultBool: true },
+        { key: 'point-system.tip_preset_amounts', transKey: 'tip_preset_amounts', type: 'text' },
+        { key: 'point-system.tip_hourly_limit', transKey: 'tip_hourly_limit', type: 'number' },
+      ],
+    },
 ];
 
 export default class PointsRulesPanel extends Component {

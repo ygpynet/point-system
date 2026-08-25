@@ -23,7 +23,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $checkin_makeup_count Make-ups used since the last real check-in.
  * @property string|null $last_checkin_date Plain 'Y-m-d' DATE — deliberately NOT cast,
  *                                          compared as a string against DayBoundary::today().
- * @property \Carbon\Carbon|null $last_daily_bonus_at
+ * @property int $daily_earned Points credited since `daily_earned_date` (for the daily cap).
+ * @property string|null $daily_earned_date Plain 'Y-m-d' DATE — not cast, compared as a string
+ *                                         against DayBoundary::today(); null means "no day yet".
  */
 class UserPoints extends AbstractModel
 {
@@ -36,12 +38,12 @@ class UserPoints extends AbstractModel
         'lifetime' => 'integer',
         'checkin_streak' => 'integer',
         'checkin_makeup_count' => 'integer',
+        'daily_earned' => 'integer',
         'current_avatar_decoration_id' => 'integer',
         'current_name_decoration_id' => 'integer',
         'current_cover_decoration_id' => 'integer',
         'current_title_decoration_id' => 'integer',
         'current_post_hl_decoration_id' => 'integer',
-        'last_daily_bonus_at' => 'datetime',
     ];
 
     protected $fillable = [
@@ -51,12 +53,13 @@ class UserPoints extends AbstractModel
         'checkin_streak',
         'checkin_makeup_count',
         'last_checkin_date',
+        'daily_earned',
+        'daily_earned_date',
         'current_avatar_decoration_id',
         'current_name_decoration_id',
         'current_cover_decoration_id',
         'current_title_decoration_id',
         'current_post_hl_decoration_id',
-        'last_daily_bonus_at',
     ];
 
     public function user(): BelongsTo

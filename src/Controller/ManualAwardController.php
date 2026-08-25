@@ -58,7 +58,7 @@ class ManualAwardController implements RequestHandlerInterface
         }
 
         if ($amount > 0) {
-            $this->points->award($user, $amount, $reason);
+            $this->points->award($user, $amount, $reason, null, null, null, true);
         } else {
             // Negative amount means revoke balance only (lifetime intact).
             try {

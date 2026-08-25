@@ -81,6 +81,14 @@ app.initializers.add('ygpynet/point-system', () => {
         permission: 'pointSystem.viewTipList',
       },
       'moderate'
+    )
+    .registerPermission(
+      {
+        icon: 'fas fa-receipt',
+        label: app.translator.trans('ygpynet-point-system.admin.permissions.view_transactions'),
+        permission: 'pointSystem.viewTransactions',
+      },
+      'moderate'
     );
 
   // Required by fof/forum-widgets-core: widgets must be registered in both

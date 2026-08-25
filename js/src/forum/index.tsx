@@ -18,6 +18,7 @@ import ShopPage from './components/ShopPage';
 import DecorationsPage from './components/DecorationsPage';
 import TradesPage from './components/TradesPage';
 import UserTradesPage from './components/UserTradesPage';
+import UserTransactionsPage from './components/UserTransactionsPage';
 import UserPage from 'flarum/forum/components/UserPage';
 import AwardPointsModal from './components/AwardPointsModal';
 import PointsManualNotification from './components/PointsManualNotification';
@@ -55,6 +56,7 @@ app.initializers.add('ygpynet/point-system', () => {
   app.routes['pointSystem.decorations.tab'] = { path: '/decorations/:tab', component: DecorationsPage };
   app.routes['pointSystem.trades'] = { path: '/trades', component: TradesPage };
   app.routes['user.trades'] = { path: '/u/:username/trades', component: UserTradesPage };
+  app.routes['user.transactions'] = { path: '/u/:username/transactions', component: UserTransactionsPage };
 
   // ── Notification components ─────────────────────────────────────────────
   app.notificationComponents.pointsManual = PointsManualNotification;
@@ -259,6 +261,18 @@ app.initializers.add('ygpynet/point-system', () => {
         {app.translator.trans('ygpynet-point-system.forum.user_profile.trades_link')}
       </LinkButton>,
       85
+    );
+
+    // ── "Points ledger" tab on the user profile sidebar — self-only ──────
+    // Mirrors the trades tab: only visible to the profile owner. The backend
+    // only ever returns the actor's own ledger, so this is both UX and a
+    // hard gate against browsing someone else's points history.
+    items.add(
+      'pointSystem-transactions',
+      <LinkButton href={app.route('user.transactions', { username: user.slug() })} icon="fas fa-receipt">
+        {app.translator.trans('ygpynet-point-system.forum.user_profile.transactions_link')}
+      </LinkButton>,
+      84
     );
   });
 

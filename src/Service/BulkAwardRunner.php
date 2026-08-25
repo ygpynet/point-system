@@ -60,7 +60,7 @@ class BulkAwardRunner
     {
         try {
             if ($amount > 0) {
-                $this->points->award($user, $amount, $reason);
+                $this->points->award($user, $amount, $reason, null, null, null, true);
             } else {
                 $this->points->deduct($user, abs($amount), $reason);
             }

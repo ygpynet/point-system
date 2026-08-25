@@ -10,9 +10,12 @@ use Flarum\User\User;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\ConnectionInterface;
 use Ramon\PointSystem\Event\PointsAwarded;
+use Ramon\PointSystem\Exception\DuplicateTransactionException;
+use Ramon\PointSystem\Support\DayBoundary;
 use Ramon\PointSystem\Model\GroupOffer;
 use Ramon\PointSystem\Model\PointTransaction;
 use Ramon\PointSystem\Model\UserPoints;
+use Ramon\PointSystem\Points\PointsRepositoryInterface;
 
 /**
  * Central service for all point operations.
@@ -26,7 +29,7 @@ use Ramon\PointSystem\Model\UserPoints;
  * raised inside the same transaction as the state change and flushed once
  * the row is saved, so a rolled-back transaction never leaks a stale event.
  */
-class PointsRepository
+class PointsRepository implements PointsRepositoryInterface
 {
     use DispatchEventsTrait;
 
@@ -133,14 +136,36 @@ class PointsRepository
         ?string $referenceType = null,
         ?int $referenceId = null,
         ?array $meta = null,
+        bool $bypassCap = false,
     ): ?PointTransaction {
         if ($amount <= 0 || ! $this->isEnabled()) {
             return null;
         }
 
         $tx = null;
-        $points = $this->db->transaction(function () use ($user, $amount, $reason, $referenceType, $referenceId, $meta, &$tx) {
+        try {
+            $points = $this->db->transaction(function () use ($user, $amount, $reason, $referenceType, $referenceId, $meta, $bypassCap, &$tx) {
             $points = $this->getOrCreateForUpdate($user);
+
+            // Daily earning cap. Resets on the server's calendar day
+            // (DayBoundary), exactly like the check-in streak. Admin manual
+            // grants pass $bypassCap = true and are never limited.
+            $effective = $amount;
+            if (! $bypassCap) {
+                $cap = $this->settingInt('point-system.daily_earn_cap', 0);
+                if ($cap > 0) {
+                    $today = DayBoundary::today();
+                    if ($points->daily_earned_date !== $today) {
+                        $points->daily_earned = 0;
+                        $points->daily_earned_date = $today;
+                    }
+                    $remaining = max(0, $cap - (int) $points->daily_earned);
+                    if ($remaining <= 0) {
+                        return $points;
+                    }
+                    $effective = min($amount, $remaining);
+                }
+            }
 
             // Idempotency guard. Runs under the row lock so a concurrent
             // re-dispatch can't slip a second credit between the check and the
@@ -159,19 +184,43 @@ class PointsRepository
                 }
             }
 
-            $points->lifetime += $amount;
-            $points->balance  += $amount;
-            $points->raise(new PointsAwarded($user, $amount, $reason));
+            // Deterministic key for entity-scoped reasons so the DB unique index
+            // (point_system_tx_dedupe) can reject a duplicate credit that slips
+            // past the existence guard under a concurrent / retried dispatch.
+            $dedupeKey = ($referenceType !== null && $referenceId !== null && $this->isIdempotentReason($reason))
+                ? "{$reason}|{$referenceType}|{$referenceId}"
+                : null;
+
+            $points->lifetime += $effective;
+            $points->balance  += $effective;
+            $points->daily_earned += $effective;
+            $points->raise(new PointsAwarded($user, $effective, $reason));
             $points->save();
 
-            $tx = PointTransaction::create([
-                'user_id' => $user->id,
-                'amount' => $amount,
-                'reason' => $reason,
-                'reference_type' => $referenceType,
-                'reference_id' => $referenceId,
-                'meta' => $meta,
-            ]);
+            // The unique index is the last line of defense: if a duplicate still
+            // reaches here (same-row race that slipped past the existence guard),
+            // the create throws. We deliberately re-throw a marker so the whole
+            // DB transaction aborts — rolling back the balance/daily-cap increment
+            // performed just above. Treating the duplicate as "already credited"
+            // (no row, no balance change) is only correct if the increment is
+            // also undone; swallowing the exception here would commit the orphaned
+            // balance bump and let a retried dispatch double-credit.
+            try {
+                $tx = PointTransaction::create([
+                    'user_id' => $user->id,
+                    'amount' => $effective,
+                    'reason' => $reason,
+                    'reference_type' => $referenceType,
+                    'reference_id' => $referenceId,
+                    'meta' => $meta,
+                    'dedupe_key' => $dedupeKey,
+                ]);
+            } catch (\Illuminate\Database\QueryException $e) {
+                if (! $this->isUniqueViolation($e)) {
+                    throw $e;
+                }
+                throw new \Ramon\PointSystem\Exception\DuplicateTransactionException();
+            }
 
             $this->syncAutoGroups($user, $points);
 
@@ -179,6 +228,11 @@ class PointsRepository
         });
 
         $this->dispatchEventsFor($points);
+        } catch (\Ramon\PointSystem\Exception\DuplicateTransactionException $e) {
+            // Transaction rolled back as a duplicate credit: nothing to persist,
+            // nothing to announce.
+            return null;
+        }
 
         return $tx;
     }
@@ -276,6 +330,38 @@ class PointsRepository
     }
 
     /**
+     * Atomically move points from one user to another. The sender's balance is
+     * checked and debited inside the SAME database transaction that credits the
+     * receiver, so a failure mid-transfer can never leave exactly one side
+     * changed. The receiver's credit bypasses the daily cap — received points
+     * aren't "earned" through activity.
+     *
+     * Prefer this over calling {@see deduct()} then {@see award()} in the
+     * controller: it guarantees a single atomic unit regardless of whether the
+     * underlying store supports nested-transaction savepoints.
+     */
+    public function transfer(
+        User $from,
+        User $to,
+        int $amount,
+        string $reason,
+        ?string $referenceType = null,
+        ?int $referenceId = null,
+    ): void {
+        if ($amount <= 0 || ! $this->isEnabled()) {
+            return;
+        }
+
+        $this->db->transaction(function () use ($from, $to, $amount, $reason, $referenceType, $referenceId) {
+            // deduct() raises DomainException on shortfall, which rolls back the
+            // whole transfer (savepoint semantics) so the receiver is never
+            // credited for a payment that didn't go through.
+            $this->deduct($from, $amount, $reason . '.out', $referenceType, $referenceId);
+            $this->award($to, $amount, $reason . '.in', $referenceType, $referenceId, null, true);
+        });
+    }
+
+    /**
      * Walk the auto-enabled group offers (ordered by points_required asc) and
      * attach the user to every offer they qualify for. Only offers with
      * is_auto=true participate: purchase-only offers are never auto-attached
@@ -323,6 +409,23 @@ class PointsRepository
     public function isEnabled(): bool
     {
         return (bool) $this->settings->get('point-system.enabled', true);
+    }
+
+    /**
+     * True when the exception is a unique-constraint violation. Used so the
+     * dedupe_key index can act as a last-line defense against double credits
+     * without us having to parse driver-specific SQLSTATEs exhaustively.
+     */
+    private function isUniqueViolation(\Throwable $e): bool
+    {
+        $code = (int) ($e->getCode() ?? 0);
+        if ($code === 23000 || $code === 1062 || $code === 23505) {
+            return true;
+        }
+        $msg = strtolower($e->getMessage());
+        return str_contains($msg, 'unique')
+            || str_contains($msg, 'duplicate')
+            || str_contains($msg, '1062');
     }
 
     public function settingInt(string $key, int $default = 0): int

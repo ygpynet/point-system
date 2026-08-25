@@ -3,7 +3,9 @@
 use Flarum\Database\Migration;
 
 return Migration::addPermissions([
-    // Group 1 = Admin, Group 4 = Moderator. By default only these can view the
-    // tipper roster; admins can grant it to other groups from the Permissions page.
-    'pointSystem.viewTipList' => [1, 4],
+    // Default to Moderator (group 4) only. Admin (group 1) is already covered
+    // by the superuser grant, so listing it here too would render the admin
+    // badge twice in the Permissions UI. Admins can grant it to other groups
+    // from the Permissions page.
+    'pointSystem.viewTipList' => [4],
 ]);

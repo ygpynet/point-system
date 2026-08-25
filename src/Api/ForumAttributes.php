@@ -166,21 +166,24 @@ class ForumAttributes
                         return [];
                     }
                     $actor = $context->getActor();
-                    return $scopeFor(AvatarDecoration::query(), $context, ShopClaim::TYPE_AVATAR)
-                        ->orderBy('sort')
-                        ->orderBy('id')
-                        ->limit(self::CATALOG_LIMIT)
-                        ->get()
-                        ->map(fn (AvatarDecoration $d) => array_merge([
-                            'id' => $d->id,
-                            'name' => $d->name,
-                            'description' => $d->description,
-                            'imagePath' => $d->image_path,
-                            'imageUrl' => $d->image_url,
-                            'isAnimated' => (bool) $d->is_animated,
-                            'price' => (int) $d->price,
-                        ], $serializeAvailability($d, $actor)))
-                        ->toArray();
+                    return $this->rememberCatalog(
+                        $this->catalogKey(ShopClaim::TYPE_AVATAR, $actor),
+                        fn () => $scopeFor(AvatarDecoration::query(), $context, ShopClaim::TYPE_AVATAR)
+                            ->orderBy('sort')
+                            ->orderBy('id')
+                            ->limit(self::CATALOG_LIMIT)
+                            ->get()
+                            ->map(fn (AvatarDecoration $d) => array_merge([
+                                'id' => $d->id,
+                                'name' => $d->name,
+                                'description' => $d->description,
+                                'imagePath' => $d->image_path,
+                                'imageUrl' => $d->image_url,
+                                'isAnimated' => (bool) $d->is_animated,
+                                'price' => (int) $d->price,
+                            ], $serializeAvailability($d, $actor)))
+                            ->toArray()
+                    );
                 }),
 
             Schema\Arr::make('pointSystemNameDecorations')
@@ -189,21 +192,24 @@ class ForumAttributes
                         return [];
                     }
                     $actor = $context->getActor();
-                    return $scopeFor(NameDecoration::query(), $context, ShopClaim::TYPE_NAME)
-                        ->orderBy('sort')
-                        ->orderBy('id')
-                        ->limit(self::CATALOG_LIMIT)
-                        ->get()
-                        ->map(fn (NameDecoration $d) => array_merge([
-                            'id' => $d->id,
-                            'name' => $d->name,
-                            'slug' => $d->slug,
-                            'description' => $d->description,
-                            'preset' => $d->preset,
-                            'customCss' => CssSanitizer::sanitize($d->custom_css),
-                            'price' => (int) $d->price,
-                        ], $serializeAvailability($d, $actor)))
-                        ->toArray();
+                    return $this->rememberCatalog(
+                        $this->catalogKey(ShopClaim::TYPE_NAME, $actor),
+                        fn () => $scopeFor(NameDecoration::query(), $context, ShopClaim::TYPE_NAME)
+                            ->orderBy('sort')
+                            ->orderBy('id')
+                            ->limit(self::CATALOG_LIMIT)
+                            ->get()
+                            ->map(fn (NameDecoration $d) => array_merge([
+                                'id' => $d->id,
+                                'name' => $d->name,
+                                'slug' => $d->slug,
+                                'description' => $d->description,
+                                'preset' => $d->preset,
+                                'customCss' => CssSanitizer::sanitize($d->custom_css),
+                                'price' => (int) $d->price,
+                            ], $serializeAvailability($d, $actor)))
+                            ->toArray()
+                    );
                 }),
 
             Schema\Arr::make('pointSystemCoverDecorations')
@@ -212,21 +218,24 @@ class ForumAttributes
                         return [];
                     }
                     $actor = $context->getActor();
-                    return $scopeFor(CoverDecoration::query(), $context, ShopClaim::TYPE_COVER)
-                        ->orderBy('sort')
-                        ->orderBy('id')
-                        ->limit(self::CATALOG_LIMIT)
-                        ->get()
-                        ->map(fn (CoverDecoration $d) => array_merge([
-                            'id' => $d->id,
-                            'name' => $d->name,
-                            'description' => $d->description,
-                            'imagePath' => $d->image_path,
-                            'imageUrl' => $d->image_url,
-                            'isAnimated' => (bool) $d->is_animated,
-                            'price' => (int) $d->price,
-                        ], $serializeAvailability($d, $actor)))
-                        ->toArray();
+                    return $this->rememberCatalog(
+                        $this->catalogKey(ShopClaim::TYPE_COVER, $actor),
+                        fn () => $scopeFor(CoverDecoration::query(), $context, ShopClaim::TYPE_COVER)
+                            ->orderBy('sort')
+                            ->orderBy('id')
+                            ->limit(self::CATALOG_LIMIT)
+                            ->get()
+                            ->map(fn (CoverDecoration $d) => array_merge([
+                                'id' => $d->id,
+                                'name' => $d->name,
+                                'description' => $d->description,
+                                'imagePath' => $d->image_path,
+                                'imageUrl' => $d->image_url,
+                                'isAnimated' => (bool) $d->is_animated,
+                                'price' => (int) $d->price,
+                            ], $serializeAvailability($d, $actor)))
+                            ->toArray()
+                    );
                 }),
 
             Schema\Arr::make('pointSystemTitleDecorations')
@@ -235,22 +244,25 @@ class ForumAttributes
                         return [];
                     }
                     $actor = $context->getActor();
-                    return $scopeFor(TitleDecoration::query(), $context, ShopClaim::TYPE_TITLE)
-                        ->orderBy('sort')
-                        ->orderBy('id')
-                        ->limit(self::CATALOG_LIMIT)
-                        ->get()
-                        ->map(fn (TitleDecoration $d) => array_merge([
-                            'id' => $d->id,
-                            'name' => $d->name,
-                            'slug' => $d->slug,
-                            'description' => $d->description,
-                            'titleText' => $d->title_text,
-                            'color' => $d->color,
-                            'customCss' => CssSanitizer::sanitize($d->custom_css),
-                            'price' => (int) $d->price,
-                        ], $serializeAvailability($d, $actor)))
-                        ->toArray();
+                    return $this->rememberCatalog(
+                        $this->catalogKey(ShopClaim::TYPE_TITLE, $actor),
+                        fn () => $scopeFor(TitleDecoration::query(), $context, ShopClaim::TYPE_TITLE)
+                            ->orderBy('sort')
+                            ->orderBy('id')
+                            ->limit(self::CATALOG_LIMIT)
+                            ->get()
+                            ->map(fn (TitleDecoration $d) => array_merge([
+                                'id' => $d->id,
+                                'name' => $d->name,
+                                'slug' => $d->slug,
+                                'description' => $d->description,
+                                'titleText' => $d->title_text,
+                                'color' => $d->color,
+                                'customCss' => CssSanitizer::sanitize($d->custom_css),
+                                'price' => (int) $d->price,
+                            ], $serializeAvailability($d, $actor)))
+                            ->toArray()
+                    );
                 }),
 
             Schema\Arr::make('pointSystemPostHighlightDecorations')
@@ -259,21 +271,24 @@ class ForumAttributes
                         return [];
                     }
                     $actor = $context->getActor();
-                    return $scopeFor(PostHighlightDecoration::query(), $context, ShopClaim::TYPE_POST_HL)
-                        ->orderBy('sort')
-                        ->orderBy('id')
-                        ->limit(self::CATALOG_LIMIT)
-                        ->get()
-                        ->map(fn (PostHighlightDecoration $d) => array_merge([
-                            'id' => $d->id,
-                            'name' => $d->name,
-                            'slug' => $d->slug,
-                            'description' => $d->description,
-                            'preset' => $d->preset,
-                            'customCss' => CssSanitizer::sanitize($d->custom_css),
-                            'price' => (int) $d->price,
-                        ], $serializeAvailability($d, $actor)))
-                        ->toArray();
+                    return $this->rememberCatalog(
+                        $this->catalogKey(ShopClaim::TYPE_POST_HL, $actor),
+                        fn () => $scopeFor(PostHighlightDecoration::query(), $context, ShopClaim::TYPE_POST_HL)
+                            ->orderBy('sort')
+                            ->orderBy('id')
+                            ->limit(self::CATALOG_LIMIT)
+                            ->get()
+                            ->map(fn (PostHighlightDecoration $d) => array_merge([
+                                'id' => $d->id,
+                                'name' => $d->name,
+                                'slug' => $d->slug,
+                                'description' => $d->description,
+                                'preset' => $d->preset,
+                                'customCss' => CssSanitizer::sanitize($d->custom_css),
+                                'price' => (int) $d->price,
+                            ], $serializeAvailability($d, $actor)))
+                            ->toArray()
+                    );
                 }),
 
             // Group offers shown on the Rewards page. Each offer can be
@@ -286,22 +301,25 @@ class ForumAttributes
                         return [];
                     }
                     $actor = $context->getActor();
-                    return $scopeForOffers(GroupOffer::query()->with('group'), $context)
-                        ->orderBy('points_required')
-                        ->limit(self::CATALOG_LIMIT)
-                        ->get()
-                        ->map(fn (GroupOffer $o) => array_merge([
-                            'id' => $o->id,
-                            'groupId' => $o->group_id,
-                            'groupName' => optional($o->group)->name_plural ?: optional($o->group)->name_singular,
-                            'groupColor' => optional($o->group)->color,
-                            'groupIcon' => optional($o->group)->icon,
-                            'pointsRequired' => (int) $o->points_required,
-                            'price' => (int) $o->price,
-                            'isAuto' => (bool) $o->is_auto,
-                            'isPurchasable' => (bool) $o->is_purchasable,
-                        ], $serializeAvailability($o, $actor)))
-                        ->toArray();
+                    return $this->rememberCatalog(
+                        $this->catalogKey('group_offers', $actor),
+                        fn () => $scopeForOffers(GroupOffer::query()->with('group'), $context)
+                            ->orderBy('points_required')
+                            ->limit(self::CATALOG_LIMIT)
+                            ->get()
+                            ->map(fn (GroupOffer $o) => array_merge([
+                                'id' => $o->id,
+                                'groupId' => $o->group_id,
+                                'groupName' => optional($o->group)->name_plural ?: optional($o->group)->name_singular,
+                                'groupColor' => optional($o->group)->color,
+                                'groupIcon' => optional($o->group)->icon,
+                                'pointsRequired' => (int) $o->points_required,
+                                'price' => (int) $o->price,
+                                'isAuto' => (bool) $o->is_auto,
+                                'isPurchasable' => (bool) $o->is_purchasable,
+                            ], $serializeAvailability($o, $actor)))
+                            ->toArray()
+                    );
                 }),
 
             // Teto aplicado aos seis catálogos acima. O frontend compara
@@ -349,6 +367,64 @@ class ForumAttributes
             Schema\Boolean::make('pointSystemUserSubmissionsEnabled')
                 ->get(fn () => $this->features->isUserSubmissionsEnabled()),
         ];
+    }
+
+    /**
+     * Cache de catálogo: os seis catálogos de decorações viajam em TODA página
+     * para TODO visitante (inclusive guest). Sem cache, são 5–6 queries por
+     * page-load; com o cache de 60s o custo cai para quase nulo na maior parte
+     * do tráfego. A chave inclui o actor (cada usuário vê seu próprio
+     * `isAvailable`/possessões) e uma assinatura das toggles de feature — virar
+     * qualquer feature (ou aprovar uma submissão que dependa delas) invalida
+     * todos os caches de catálogo de uma vez. Janela de obsolescência de 60s é
+     * aceitável para um catálogo de loja; o "My decorations" reflete posse via
+     * ShopClaim独立 e não depende só deste payload.
+     */
+    private const CATALOG_TTL = 60;
+
+    private function catalogSignature(): string
+    {
+        $parts = [
+            (string) $this->settings->get('point-system.auto_group_enabled', '1'),
+            (string) $this->features->isEnabled(ShopClaim::TYPE_AVATAR),
+            (string) $this->features->isEnabled(ShopClaim::TYPE_NAME),
+            (string) $this->features->isEnabled(ShopClaim::TYPE_COVER),
+            (string) $this->features->isEnabled(ShopClaim::TYPE_TITLE),
+            (string) $this->features->isEnabled(ShopClaim::TYPE_POST_HL),
+            (string) $this->features->isTradeEnabled(),
+            (string) $this->features->isUserSubmissionsEnabled(),
+        ];
+
+        return md5(implode('|', $parts));
+    }
+
+    private function catalogKey(string $type, $actor): string
+    {
+        $actorId = $actor && method_exists($actor, 'getKey') ? (int) ($actor->getKey() ?? 0) : 0;
+
+        return "point-system.catalog.{$type}.{$actorId}." . $this->catalogSignature();
+    }
+
+    /**
+     * Resolve do cache (TTL 60s) ou executa o loader e armazena. Qualquer falha
+     * de cache (driver ausente, exceção) degrada graciosamente para o loader sem
+     * quebrar o render do fórum.
+     */
+    private function rememberCatalog(string $key, callable $loader): array
+    {
+        try {
+            $cache = app(\Illuminate\Contracts\Cache\Repository::class);
+            $hit = $cache->get($key);
+            if (is_array($hit)) {
+                return $hit;
+            }
+            $value = $loader();
+            $cache->put($key, $value, self::CATALOG_TTL);
+
+            return $value;
+        } catch (\Throwable) {
+            return $loader();
+        }
     }
 
     /**
