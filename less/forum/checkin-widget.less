@@ -1,0 +1,52 @@
+// ─── Check-in widget (fof/forum-widgets-core) ───────────────────────────────
+// Rendered inside the widgets-core container; scoped to our className so the
+// forum's own `.Widget` styles from the framework keep working untouched.
+
+.PointSystemCheckInWidget {
+  .PointSystemCheckInWidget-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 4px 0;
+  }
+
+  .PointSystemCheckInWidget-streak {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 600;
+
+    .fa-fire {
+      color: #f97316;
+    }
+  }
+
+  .PointSystemCheckInWidget-reward,
+  .PointSystemCheckInWidget-next,
+  .PointSystemCheckInWidget-todayCount {
+    font-size: 12px;
+    color: var(--text-muted, #8a8a8a);
+  }
+
+  .PointSystemCheckInWidget-rank {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #d97706;
+
+    .fa-trophy {
+      color: #f59e0b;
+    }
+  }
+
+  .PointSystemCheckInWidget-button {
+    align-self: stretch;
+
+    &[disabled] {
+      opacity: 0.65;
+    }
+  }
+}

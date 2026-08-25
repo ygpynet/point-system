@@ -1,0 +1,82 @@
+name: Sincronizar Branches com Main
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: sync-branches
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Sincronizar branches com main
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configurar Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Sincronizar branches com main
+        # GITHUB_TOKEN não tem o escopo `workflow`, então pushes que tocam
+        # `.github/workflows/*` são rejeitados pelo GitHub. Tratamos a falha
+        # de push como skip (igual a conflito de merge) em vez de abortar o
+        # workflow inteiro, mantendo o sync best-effort por branch.
+        run: |
+          set +e
+          git fetch --all
+
+          BRANCHES=$(git branch -r \
+            | grep -v 'HEAD' \
+            | grep -v 'origin/main' \
+            | grep -v 'origin/copilot/' \
+            | grep -v 'origin/dependabot/' \
+            | grep -v 'origin/claude/' \
+            | sed 's|origin/||' \
+            | tr -d ' ')
+
+          FAILED_BRANCHES=()
+
+          for branch in $BRANCHES; do
+            echo "▶ Sincronizando branch: $branch"
+
+            git checkout -B "$branch" "origin/$branch"
+
+            if ! git merge-base origin/main "origin/$branch" >/dev/null 2>&1; then
+              echo "Branch '$branch' sem histórico comum com main (pré-reescrita) — pulando"
+              continue
+            fi
+
+            if git merge origin/main --no-edit -m "chore: sync with main"; then
+              if git push origin "$branch"; then
+                echo "✅ Branch '$branch' sincronizada com sucesso"
+              else
+                echo "⚠️  Push rejeitado para '$branch' (provável: alteração em .github/workflows/* exige token com escopo 'workflow') — pulando"
+                FAILED_BRANCHES+=("$branch")
+                git reset --hard "origin/$branch"
+              fi
+            else
+              echo "⚠️  Conflito ao sincronizar '$branch' com main — pulando"
+              FAILED_BRANCHES+=("$branch")
+              git merge --abort 2>/dev/null || true
+            fi
+          done
+
+          if [ ${#FAILED_BRANCHES[@]} -gt 0 ]; then
+            echo ""
+            echo "=== Branches que precisam de sync manual ==="
+            printf '  - %s\n' "${FAILED_BRANCHES[@]}"
+          fi
+
+          exit 0

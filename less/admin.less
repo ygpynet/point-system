@@ -1,0 +1,1446 @@
+@import 'common/tokens.less';
+@import 'common/decorations.less';
+
+.PointSystemAdmin {
+  // ── Form controls inside any PointSystemAdmin panel ──────────────────────
+  // Give inputs a clear edge regardless of what background sits behind them,
+  // so they never blend into a card that uses the same control-bg variable.
+  .FormControl {
+    background: var(--body-bg, #fff);
+    border: 1px solid var(--control-bg, #d8d8dc);
+    border-radius: 8px;
+    padding: 9px 13px;
+    width: 100%;
+    font-size: 13.5px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+
+    &::placeholder {
+      color: var(--muted-color, #9ca3af);
+    }
+
+    &:hover:not(:focus) {
+      border-color: var(--control-bg, #c4c4ca);
+    }
+
+    &:focus {
+      border-color: var(--primary-color, #6cc04a);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color, #6cc04a) 18%, transparent);
+      outline: none;
+    }
+
+    &:disabled {
+      background: var(--ps-tint-1);
+      cursor: not-allowed;
+    }
+  }
+
+  textarea.FormControl {
+    min-height: 100px;
+    line-height: 1.5;
+  }
+
+  select.FormControl {
+    appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, #888 50%),
+      linear-gradient(135deg, #888 50%, transparent 50%);
+    background-position: calc(100% - 18px) 50%, calc(100% - 12px) 50%;
+    background-size: 6px 6px;
+    background-repeat: no-repeat;
+    padding-right: 32px;
+    cursor: pointer;
+  }
+
+  input[type='file'] {
+    display: inline-block;
+    padding: 8px 10px;
+    background: var(--body-bg, #fff);
+    border: 1px dashed var(--control-bg, #c8c8c8);
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    max-width: 560px;
+    width: 100%;
+
+    &::file-selector-button {
+      margin-right: 12px;
+      padding: 6px 12px;
+      background: var(--control-bg, #eee);
+      border: 1px solid var(--control-bg, #ccc);
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+
+      &:hover {
+        background: var(--ps-surface-muted);
+      }
+    }
+  }
+
+  &-body {
+    padding-top: 20px;
+    padding-bottom: 40px;
+  }
+
+  // (Final, authoritative `-section` + `-section-header` rules live near the
+  // bottom of this file in the "Polished admin layout" block. The earlier
+  // partial definitions here were leftovers from before that refactor —
+  // keep the early-position stubs minimal so the cascade leaves the later,
+  // more deliberate values in charge.)
+
+  &-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  &-card-body {
+    margin-top: 4px;
+  }
+
+  &-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+
+    .Button {
+      flex: 0 1 auto;
+      min-width: 0;
+      padding: 6px 10px;
+      font-size: 12px;
+
+      i {
+        margin-right: 2px;
+      }
+    }
+  }
+
+  &-field label {
+    font-weight: 600;
+    margin-bottom: 4px;
+    display: block;
+  }
+
+  &-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  &-uploader {
+    background: var(--body-bg, #fff);
+    border: 1px solid var(--control-bg, #e6e6e9);
+    border-radius: 12px;
+    padding: 20px 22px 22px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 2px var(--ps-tint-1);
+
+    h3 {
+      margin-top: 0;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      color: var(--muted-color, #6b7280);
+      border-bottom: 1px solid var(--control-bg, #e6e6e9);
+    }
+
+    .Form-group {
+      margin-bottom: 14px;
+      max-width: 560px;
+
+      label {
+        display: block;
+        font-weight: 500;
+        font-size: 13px;
+        margin-bottom: 6px;
+        color: var(--text-color, #1f2937);
+      }
+
+      .helpText {
+        margin-top: 4px;
+        font-size: 12px;
+        color: var(--muted-color, #6b7280);
+        line-height: 1.45;
+      }
+    }
+  }
+
+  // "Existing items" header inside every list-and-create panel — same
+  // typographic rhythm as the uploader card's h3 above so the two sections
+  // read as siblings instead of competing for attention.
+  > h3,
+  &-section > h3 {
+    margin: 22px 0 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--control-bg, #e6e6e9);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--muted-color, #6b7280);
+  }
+
+  &-empty {
+    color: var(--muted-color, #6b7280);
+    padding: 24px 16px;
+    text-align: center;
+    background: var(--body-bg, #fff);
+    border: 1px dashed var(--control-bg, #d8d8dc);
+    border-radius: 10px;
+    font-size: 13px;
+  }
+
+  &-decoGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+  }
+
+  &-decoCard {
+    background: var(--body-bg, #fff);
+    border: 1px solid var(--control-bg, #e6e6e9);
+    border-radius: 12px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+
+    &:hover {
+      border-color: var(--control-bg, #d6d6dc);
+      box-shadow: 0 2px 8px var(--ps-tint-2);
+    }
+
+    &.is-disabled {
+      opacity: 0.55;
+    }
+
+    &-meta strong {
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    &-preview {
+      aspect-ratio: 1 / 1;
+      background: var(--control-bg, #f5f5f7);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+
+      img {
+        max-width: 100%;
+        max-height: 100%;
+      }
+    }
+
+    &-meta {
+      font-size: 12px;
+      color: var(--muted-color, #888);
+    }
+
+    &-priceRow {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      label {
+        flex: 0 0 auto;
+        margin: 0;
+        font-size: 12px;
+      }
+
+      input {
+        flex: 1 1 auto;
+      }
+    }
+
+    &-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+
+      .Button {
+        flex: 0 1 auto;
+        min-width: 0;
+        padding: 6px 10px;
+        font-size: 12px;
+
+        i {
+          margin-right: 2px;
+        }
+      }
+    }
+  }
+
+  &-css {
+    font-family: monospace;
+    font-size: 13px;
+  }
+
+  &-preview {
+    margin: 8px 0 16px;
+    padding: 12px 14px;
+    background: var(--body-bg, #fff);
+    border: 1px solid var(--control-bg, #e0e0e0);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+
+    > span:first-child {
+      color: var(--muted-color, #888);
+      font-weight: 500;
+    }
+  }
+
+  // ── Post highlight preview override for admin context ──────────────────
+  // `decorations.less` caps `.ps-posthl-preview` at `max-width: 220px` so
+  // the shop card preview stays compact. In the admin card, the preview is
+  // the visual identity of the row — let it fill the card width so the
+  // outline / glow / ribbon is clearly visible. Also bumps the inner
+  // proportions (bigger avatar circle, taller body lines) so the styling
+  // reads at a glance.
+  .ps-posthl-preview {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    padding: 14px 16px !important;
+    gap: 12px !important;
+    box-sizing: border-box;
+  }
+  .ps-posthl-preview-avatar {
+    flex: 0 0 40px !important;
+    width: 40px !important;
+    height: 40px !important;
+  }
+  .ps-posthl-preview-line {
+    height: 10px !important;
+  }
+  .ps-posthl-preview-line.short {
+    width: 50% !important;
+  }
+
+  // Give the card extra inner padding so the outline-offset:4px halo of
+  // every preset has room to render without clipping against the card edge.
+  .PointSystemAdmin-grid > .PointSystemAdmin-card {
+    padding-top: 18px;
+
+    > .ps-posthl-preview {
+      margin: 4px 0 6px;
+    }
+  }
+
+  &-table {
+    width: 100%;
+    border-collapse: collapse;
+
+    th,
+    td {
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--control-bg, #eee);
+    }
+
+    th {
+      font-weight: 600;
+      color: var(--muted-color, #555);
+    }
+  }
+
+  &-result {
+    margin-top: 16px;
+    padding: 12px;
+    background: var(--success-bg, #d4edda);
+    border-radius: 8px;
+  }
+}
+
+// ─── Unified button rhythm across every admin panel ────────────────────────
+// All extension panels are wrapped in `.PointSystemAdmin`. Force a single
+// visual rhythm — height, padding, font-size, border-radius — on every
+// `.Button` inside, then let Flarum's own `--primary`/`--danger` variants
+// supply color. This keeps "Editar" "Desativar" "Grant" "Excluir" visually
+// peers no matter which panel they appear in.
+.PointSystemAdmin {
+  .Button {
+    --ps-btn-radius: 8px;
+    padding: 8px 14px;
+    border-radius: var(--ps-btn-radius);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.2;
+    border: 1px solid transparent;
+    background: var(--control-bg, #f2f2f5);
+    color: var(--text-color, #1f2937);
+    transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+
+    &:hover:not(:disabled) {
+      background: var(--ps-tint-3);
+    }
+    &:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color, #6cc04a) 25%, transparent);
+    }
+
+    i { margin-right: 6px; opacity: 0.85; }
+    &.hasIcon i { margin-right: 6px; }
+
+    &--primary {
+      background: var(--primary-color, #6cc04a);
+      color: var(--button-primary-color, #fff);
+      &:hover:not(:disabled) {
+        background: var(--primary-color, #6cc04a);
+      }
+    }
+
+    &--danger {
+      background: color-mix(in srgb, var(--ps-danger) 10%, transparent);
+      color: var(--ps-danger-fg);
+      &:hover:not(:disabled) {
+        background: color-mix(in srgb, var(--ps-danger) 18%, transparent);
+        color: var(--ps-danger-fg);
+      }
+    }
+
+    &--link {
+      background: transparent;
+      color: var(--primary-color, #6cc04a);
+      padding-left: 4px;
+      padding-right: 4px;
+      &:hover:not(:disabled) { background: transparent; text-decoration: underline; }
+    }
+
+    &:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+  }
+
+  // Compact variant for in-card action rows (decoration grid items). The
+  // existing `.PointSystemAdmin-decoCard-actions .Button` rule already sets
+  // the smaller height; keep that, just inherit our unified colors above.
+  &-card-actions .Button,
+  &-decoCard-actions .Button,
+  &-coverCard-actions .Button {
+    padding: 6px 10px;
+    font-size: 12px;
+    i { margin-right: 4px; }
+  }
+}
+
+// ── Edit modal: replaces the old in-grid inline edit form. Each Edit*Modal
+// extends Modal--medium by default — the form is form-shaped (single column
+// of fields), so the Flarum stock Modal--large was over-wide and produced
+// a lot of dead whitespace. We cap the inner width via CSS so the modal
+// stays comfortable even when Flarum's Modal--medium expands on wide screens.
+.EditDecorationModal {
+  .Modal-dialog {
+    max-width: 640px;
+  }
+
+  .Modal-body {
+    padding: 22px 24px 24px;
+
+    .PointSystemAdmin-decoCard-preview,
+    .PointSystemAdmin-coverCard-preview {
+      max-width: 240px;
+      margin: 0 auto 18px;
+    }
+
+    .Form-group {
+      margin-bottom: 14px;
+
+      label {
+        display: block;
+        font-weight: 500;
+        font-size: 13px;
+        margin-bottom: 6px;
+        color: var(--text-color, #1f2937);
+      }
+    }
+
+    .EditDecorationModal-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 22px;
+      padding-top: 16px;
+      border-top: 1px solid var(--control-bg, #e6e6e9);
+
+      .Button {
+        flex: 0 1 auto;
+      }
+    }
+  }
+}
+
+// ── Edit form lives OUTSIDE the auto-fill grid (own block, full width)
+// so its layout never collapses into a single grid cell.
+.PointSystemAdmin-decoCard--editing {
+  display: block;
+  width: 100%;
+  margin: 0 0 20px;
+  padding: 18px 20px;
+  background: var(--body-bg, #fff);
+  border: 1px solid var(--primary-color, #6cc04a) !important;
+  border-radius: 10px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color, #6cc04a) 12%, transparent);
+
+  .PointSystemAdmin-decoCard-preview {
+    max-width: 220px;
+    margin-bottom: 14px;
+  }
+
+  .Form-group {
+    margin-bottom: 14px;
+    max-width: 640px;
+
+    label {
+      display: block;
+      font-weight: 600;
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+  }
+
+  .PointSystemAdmin-decoCard-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+}
+
+// ── Admin sub-navigation (pill links, same pattern as marketplace) ─────────
+.PointSystemAdminNav {
+  display: flex;
+  gap: 4px;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--control-bg, #e6e6e9);
+  background: var(--header-bg, #fafafa);
+  flex-wrap: wrap;
+  margin-bottom: 0;
+
+  &-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    color: var(--muted-color, #6b7280);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 13.5px;
+    transition: background-color 0.15s, color 0.15s, box-shadow 0.15s;
+
+    i {
+      opacity: 0.65;
+      font-size: 12.5px;
+    }
+
+    &:hover {
+      background: var(--ps-tint-2);
+      color: var(--text-color, #1f2937);
+      text-decoration: none;
+
+      i { opacity: 0.85; }
+    }
+
+    &.active {
+      background: var(--primary-color, #6cc04a);
+      color: var(--button-primary-color, #fff);
+      box-shadow: 0 2px 8px color-mix(in srgb, var(--primary-color, #6cc04a) 25%, transparent);
+
+      i { opacity: 1; }
+    }
+  }
+}
+
+// ── Users panel ─────────────────────────────────────────────────────────────
+.PointSystemAdmin-usersToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+  align-items: center;
+
+  .PointSystemAdmin-usersSearch {
+    flex: 1 1 240px;
+    min-width: 200px;
+  }
+
+  .PointSystemAdmin-usersFilter {
+    flex: 0 0 auto;
+    width: auto;
+  }
+}
+
+.PointSystemAdmin-usersRowUser {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  .Avatar {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+    background-color: var(--avatar-bg, #888);
+  }
+
+  strong { display: block; }
+  small { color: var(--muted-color, #888); }
+}
+
+.PointSystemAdmin-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 16px;
+
+  .PointSystemAdmin-pageInfo {
+    color: var(--muted-color, #777);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+// Mesma declaração de cor do `.Badge` do core: `--contrast-color` vem das
+// classes `.text-contrast--light/--dark` que o `contrastClass` aplica conforme
+// a luminância da cor do grupo. Antes era `--light-content-color` fixo, ou
+// seja, glifo claro mesmo sobre grupos de cor clara (relato 2026-07).
+.GroupBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  color: var(--contrast-color, var(--light-content-color, #fff));
+  font-size: 12px;
+}
+
+// Cover decoration grid (landscape, 16:9 thumbnails — taller cards than
+// avatars to give the banner room to breathe).
+.PointSystemAdmin-coverGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.PointSystemAdmin-coverCard {
+  background: var(--body-bg, #fff);
+  border: 1px solid var(--control-bg, #e6e6e9);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+
+  &:hover {
+    border-color: var(--control-bg, #d6d6dc);
+    box-shadow: 0 2px 8px var(--ps-tint-2);
+  }
+
+  &.is-disabled {
+    opacity: 0.55;
+  }
+
+  &--editing {
+    grid-column: 1 / -1;
+  }
+
+  &-preview {
+    aspect-ratio: 16 / 9;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--control-bg, #f4f4f7);
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+  }
+
+  &-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+
+    small {
+      color: var(--muted-color, #6b7280);
+    }
+  }
+
+  &-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+
+    .Button {
+      flex: 0 1 auto;
+      min-width: 0;
+      padding: 6px 10px;
+      font-size: 12px;
+
+      i {
+        margin-right: 2px;
+      }
+    }
+  }
+}
+
+
+// ─── Availability inputs + grant action (added 2026-05-16) ────────────────
+.PointSystemAdmin {
+  .PointSystemAdmin-availability {
+    border: 1px solid var(--control-bg, #d0d0d0);
+    border-radius: 8px;
+    padding: 12px 16px 16px;
+    margin: 16px 0;
+    background: var(--ps-tint-1);
+
+    > legend {
+      padding: 0 8px;
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--muted-color, #888);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+  }
+
+  .PointSystemAdmin-sourceTabs {
+    display: flex;
+    gap: 16px;
+    label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+  }
+
+  // Visually group the image-source toggle with the image-file/URL input
+  // that depends on it. Without this the two related fields drift apart
+  // and admins fail to associate them.
+  .PointSystemAdmin-imageSource {
+    border: 1px solid var(--control-bg, #e0e0e0);
+    border-radius: 8px;
+    padding: 12px 14px 4px;
+    background: var(--ps-tint-1);
+    margin: 6px 0 14px;
+
+    > .Form-group:last-child {
+      margin-bottom: 10px;
+    }
+  }
+
+  .PointSystemAdmin-groupPicker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    padding: 8px 0;
+  }
+  .PointSystemAdmin-groupPicker-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  .PointSystemAdmin-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    margin-left: 6px;
+    background: var(--control-bg, #d0d0d0);
+    color: var(--muted-color, #555);
+    font-size: 11px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .PointSystemAdmin-decoCard.is-unlisted,
+  .PointSystemAdmin-coverCard.is-unlisted {
+    opacity: 0.85;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ps-warning) 50%, transparent);
+  }
+
+  .PointSystemAdmin-decoCard--editing .PointSystemAdmin-availability,
+  .PointSystemAdmin-coverCard--editing .PointSystemAdmin-availability {
+    grid-column: 1 / -1;
+  }
+}
+
+
+// ─── Group offer per-row availability expansion (added 2026-05-16) ────────
+.PointSystemAdmin-availabilityRow {
+  background: var(--ps-tint-1);
+}
+.PointSystemAdmin-availabilityRow .PointSystemAdmin-availability {
+  margin: 4px 0;
+}
+.PointSystemAdmin-availabilityRow-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+// ─── Polished admin layout (2026-05-16) ──────────────────────────────────
+// Card-based sections, consistent spacing, clean separation between the
+// global header and grouped settings. Replaces the previous flat-grid
+// layout where long help text was breaking the grid.
+.PointSystemAdmin {
+  &-section {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 28px 24px 56px;
+  }
+
+  &-section-header {
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--control-bg, #e6e6e9);
+
+    h2 {
+      margin: 0 0 6px;
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--text-color, #1f2937);
+    }
+    p.helpText {
+      margin: 0;
+      color: var(--muted-color, #6b7280);
+      font-size: 13.5px;
+      line-height: 1.5;
+    }
+
+    // Variant used by every decoration panel: title + help on the left,
+    // primary "Cadastrar" action on the right. The action opens the
+    // Create*Modal so the panel surface stays dedicated to the list.
+    &--withAction {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+
+      > div {
+        flex: 1;
+        min-width: 0;
+      }
+
+      > .Button {
+        flex: 0 0 auto;
+        align-self: flex-start;
+        white-space: nowrap;
+      }
+
+      @media (max-width: 600px) {
+        flex-direction: column;
+        align-items: stretch;
+      }
+    }
+  }
+
+  // Each settings group is its own card with a small header. Groups
+  // separate boolean toggles (one-per-row list) from number/text fields
+  // (2-column grid) inside them.
+  &-card {
+    background: var(--body-bg, #fff);
+    border: 1px solid var(--control-bg, #e6e6e9);
+    border-radius: 12px;
+    padding: 18px 20px 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 2px var(--ps-tint-1);
+    transition: border-color 0.15s, box-shadow 0.15s;
+
+    // Cards inside `.PointSystemAdmin-grid` (Title / PostHighlight decoration
+    // panels) get a subtle hover lift to match the deco/cover cards above.
+    .PointSystemAdmin-grid > & {
+      padding: 14px;
+
+      &:hover {
+        border-color: var(--control-bg, #d6d6dc);
+        box-shadow: 0 2px 8px var(--ps-tint-2);
+      }
+    }
+  }
+
+  &-card-header {
+    margin-bottom: 14px;
+    h3 {
+      margin: 0 0 4px;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+    p.helpText {
+      margin: 0;
+      color: var(--muted-color, #6b7280);
+      font-size: 13px;
+    }
+  }
+
+  // Toggle list — one row per switch, label + help text inline.
+  // Replaces the old 2-column grid where help text was wrapping into
+  // the next cell.
+  &-toggleList {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &-toggleRow {
+    padding: 10px 12px;
+    border-radius: 8px;
+    transition: background-color 0.15s;
+
+    &:hover {
+      background: var(--ps-tint-1);
+    }
+
+    .Switch {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    &-label {
+      display: block;
+      font-weight: 500;
+      font-size: 14px;
+      color: var(--text-color, #1f2937);
+    }
+
+    &-help {
+      display: block;
+      font-size: 12.5px;
+      color: var(--muted-color, #6b7280);
+      margin-top: 2px;
+      line-height: 1.45;
+    }
+  }
+
+  // Number / text field grid — 2 columns on wide, 1 column on narrow.
+  &-fieldGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 20px;
+    margin-top: 12px;
+
+    @media (max-width: 720px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &-field {
+    margin: 0;
+
+    label {
+      display: block;
+      font-weight: 500;
+      font-size: 13px;
+      margin-bottom: 6px;
+      color: var(--text-color, #1f2937);
+    }
+    .FormControl {
+      width: 100%;
+    }
+    .helpText {
+      margin: 6px 0 0;
+      font-size: 12px;
+      color: var(--muted-color, #6b7280);
+      line-height: 1.4;
+    }
+  }
+
+  // Sticky save bar pinned to the bottom of the page so admins don't
+  // have to scroll all the way back up after editing the awards section.
+  &-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    background: var(--body-bg, #fff);
+    border: 1px solid var(--control-bg, #e6e6e9);
+    border-radius: 12px;
+    box-shadow: 0 -1px 4px var(--ps-tint-1);
+
+    &--sticky {
+      position: sticky;
+      bottom: 16px;
+      z-index: 5;
+    }
+  }
+
+  &-dirty {
+    color: var(--muted-color, #6b7280);
+    font-size: 13px;
+    i {
+      color: var(--ps-warning);
+      font-size: 8px;
+      margin-right: 4px;
+    }
+  }
+}
+
+// ─── Pending submissions panel ─────────────────────────────────────────────
+.PointSystemAdmin-counter {
+  display: inline-block;
+  margin-left: 10px;
+  background: var(--primary-color, #6cc04a);
+  color: var(--button-primary-color, #fff);
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  vertical-align: middle;
+}
+.PointSystemAdmin-submissionList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.PointSystemAdmin-submission {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 16px;
+  background: var(--control-bg, #f8f8fa);
+  border-radius: 12px;
+  padding: 14px;
+
+  @media (max-width: 720px) {
+    grid-template-columns: 1fr;
+  }
+
+  &-preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--body-bg, #fff);
+    border-radius: 10px;
+    aspect-ratio: 1;
+    min-height: 96px;
+  }
+  &-thumb {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    &--placeholder {
+      color: var(--muted-color, #999);
+      font-size: 32px;
+    }
+  }
+  &-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  &-family {
+    display: inline-block;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted-color, #888);
+    background: var(--ps-tint-2);
+    padding: 2px 10px;
+    border-radius: 999px;
+    margin-bottom: 6px;
+  }
+  &-meta h4 {
+    margin: 0;
+    font-size: 16px;
+  }
+  &-creator {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--muted-color, #888);
+    img {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+    }
+    .muted {
+      color: var(--muted-color, #aaa);
+    }
+  }
+  &-fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  &-css {
+    flex-basis: 100%;
+    margin-top: 6px;
+    summary {
+      cursor: pointer;
+      font-size: 12px;
+      color: var(--muted-color, #888);
+    }
+    pre {
+      background: var(--ps-tint-2);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      overflow-x: auto;
+    }
+  }
+  &-actions {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  &-price {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted-color, #888);
+    }
+    input {
+      width: 100px;
+    }
+  }
+}
+
+.PointSystemAdmin-tradesTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  th,
+  td {
+    padding: 8px 10px;
+    text-align: left;
+    border-bottom: 1px solid var(--ps-border-subtle, var(--ps-tint-3));
+    vertical-align: middle;
+  }
+
+  thead th {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted-color, #888);
+    font-weight: 600;
+  }
+}
+
+.PointSystemAdmin-tradeParty {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  img {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  small {
+    display: block;
+    color: var(--muted-color, #888);
+    font-size: 11px;
+  }
+}
+
+.PointSystemAdmin-tradeOffer {
+  .muted {
+    color: var(--muted-color, #888);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+}
+
+.PointSystemAdmin-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--ps-tint-3);
+  font-size: 11px;
+  color: var(--muted-color, #666);
+}
+
+.PointSystemAdmin-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+
+  &.is-pending {
+    background: color-mix(in srgb, var(--ps-warning) 15%, transparent);
+    color: var(--ps-warning-fg);
+  }
+  &.is-completed {
+    background: color-mix(in srgb, var(--ps-success) 15%, transparent);
+    color: var(--ps-success-fg);
+  }
+  &.is-cancelled {
+    background: color-mix(in srgb, var(--ps-danger) 12%, transparent);
+    color: var(--ps-danger-fg);
+  }
+}
+
+.PointSystemAdmin-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ps-border-subtle, var(--ps-tint-3));
+}
+
+.PointSystemAdmin-pageInfo {
+  font-size: 12px;
+  color: var(--muted-color, #888);
+}
+
+.PointSystemAdmin-empty {
+  text-align: center;
+  padding: 24px;
+  color: var(--muted-color, #888);
+  font-style: italic;
+}
+
+.PointSystemAdmin-tradesTable-row:hover {
+  background: var(--ps-tint-1);
+}
+
+// Admin trade detail modal — two-column party comparison + revert footer.
+.AdminTradeDetailModal {
+  &-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  &-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    font-size: 12px;
+
+    .muted {
+      color: var(--muted-color, #888);
+    }
+  }
+
+  &-grid {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  &-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted-color, #888);
+    font-size: 18px;
+  }
+
+  &-party {
+    border: 1px solid var(--ps-border-subtle, rgba(0, 0, 0, 0.08));
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    &-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted-color, #888);
+      font-weight: 600;
+    }
+
+    &-user {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      img {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+
+      small {
+        display: block;
+        color: var(--muted-color, #888);
+        font-size: 11px;
+      }
+    }
+
+    &-points {
+      font-weight: 600;
+      i {
+        color: var(--ps-currency);
+        margin-right: 4px;
+      }
+    }
+  }
+
+  &-itemList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 4px 8px;
+      background: var(--ps-tint-1);
+      border-radius: 4px;
+      font-size: 12px;
+    }
+  }
+
+  &-itemType {
+    color: var(--muted-color, #666);
+  }
+
+  &-error {
+    margin: 0;
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--ps-danger) 10%, transparent);
+    color: var(--ps-danger-fg);
+    font-size: 13px;
+  }
+
+  &-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--ps-border-subtle, var(--ps-tint-3));
+
+    .helpText {
+      margin: 0;
+      flex: 1;
+      font-size: 12px;
+      color: var(--muted-color, #888);
+    }
+  }
+}
+
+// ─── Username autocomplete ────────────────────────────────────────────────────
+.UsernameAutocomplete {
+  &-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: var(--body-bg, #fff);
+    border: 1px solid var(--control-bg, #ddd);
+    border-radius: 8px;
+    margin-top: 4px;
+    padding: 4px 0;
+    list-style: none;
+    box-shadow: var(--ps-shadow-2);
+
+    li {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      cursor: pointer;
+      transition: background 0.1s;
+
+      &:hover {
+        background: var(--control-bg, #f5f5f5);
+      }
+
+      .Avatar {
+        width: 28px;
+        height: 28px;
+        flex: 0 0 auto;
+        font-size: 12px;
+      }
+    }
+  }
+
+  &-name {
+    font-weight: 500;
+    font-size: 13px;
+  }
+
+  &-username {
+    font-size: 12px;
+    color: var(--muted-color, #888);
+    margin-left: auto;
+  }
+}
+
+// ─── Result block ─────────────────────────────────────────────────────────────
+.PointSystemAdmin-result {
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: var(--control-bg, #f5f5f5);
+  border-radius: 8px;
+  border: 1px solid var(--control-bg-light, #e0e0e0);
+
+  h4 {
+    margin: 0 0 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-color);
+  }
+
+  p {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: var(--text-color);
+  }
+}
+
+// ─── Bulk confirm block ───────────────────────────────────────────────────────
+.PointSystemAdmin-bulkConfirm {
+  margin-top: 12px;
+
+  p {
+    margin: 0 0 10px;
+    color: var(--text-color);
+  }
+}
+
+// ─── Button spacing in manual award ──────────────────────────────────────────
+.PointSystemAdmin-section .Form-group + .Form-group {
+  margin-top: 12px;
+}
