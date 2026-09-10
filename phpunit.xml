@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+         failOnWarning="true"
+         failOnRisky="true"
+         beStrictAboutOutputDuringTests="true"
+         cacheDirectory=".phpunit.cache">
+    <testsuites>
+        <!--
+            Só testes unitários por enquanto: helpers puros, sem banco e sem
+            boot do Flarum. Cobrem as duas superfícies de segurança que rodam
+            em toda página (sanitização de CSS e validação de URL remota).
+        -->
+        <testsuite name="unit">
+            <directory>tests/unit</directory>
+        </testsuite>
+        <!--
+            Testes de integração: sobem um SQLite em memória, rodam as migrations
+            reais e exercitam o caminho de banco (ex.: a defesa dedupe_key).
+            Requerem a extensão pdo_sqlite; pulam automaticamente se ausente.
+        -->
+        <testsuite name="integration">
+            <directory>tests/integration</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>src</directory>
+        </include>
+    </source>
+</phpunit>

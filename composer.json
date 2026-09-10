@@ -1,0 +1,78 @@
+{
+  "name": "ygpynet/point-system",
+  "description": "Points, avatar frames and group tiers for Flarum 2",
+  "keywords": [
+    "flarum",
+    "points",
+    "shop",
+    "gamification",
+    "decoration",
+    "avatar",
+    "auto-group"
+  ],
+  "type": "flarum-extension",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "ygpynet",
+      "email": "ygpynet@gmail.com",
+      "homepage": "https://ygpy.org/",
+      "role": "Developer"
+    }
+  ],
+  "support": {
+    "issues": "https://github.com/ygpynet/point-system/issues",
+    "source": "https://github.com/ygpynet/point-system"
+  },
+  "require": {
+    "flarum/core": "^2.0.0",
+    "fof/forum-widgets-core": "^2.0.0"
+  },
+  "suggest": {
+    "flarum/gdpr": "Exporta, anonimiza e apaga saldo, extrato, resgates e trocas junto com os dados do usuário (^2.0).",
+    "flarum/likes": "Concede pontos por curtida recebida e dada (^2.0)."
+  },
+  "minimum-stability": "beta",
+  "prefer-stable": true,
+  "autoload": {
+    "psr-4": {
+      "Ramon\\PointSystem\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Ramon\\PointSystem\\Tests\\": "tests/"
+    }
+  },
+  "extra": {
+    "branch-alias": {
+      "dev-master": "2.0.x-dev"
+    },
+    "flarum-extension": {
+      "title": "Point System",
+      "category": "feature",
+      "icon": {
+        "image": "icon.svg",
+        "backgroundColor": "#fff"
+      }
+    },
+    "flarum-cli": {
+      "modules": {
+        "admin": true,
+        "forum": true,
+        "js": true,
+        "jsCommon": false,
+        "css": true,
+        "gitConf": true,
+        "prettier": true,
+        "typescript": true,
+        "backendTesting": true,
+        "editorConfig": true
+      }
+    }
+  },
+  "require-dev": {
+    "flarum/realtime": "^2.0.0",
+    "phpunit/phpunit": "^11"
+  }
+}
