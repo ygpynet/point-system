@@ -6,6 +6,7 @@ namespace Ramon\PointSystem\Controller;
 
 use Flarum\Foundation\KnownError\RouteNotFoundException;
 use Flarum\Http\RequestUtil;
+use Flarum\Http\UrlGenerator;
 use Flarum\User\User;
 use Laminas\Diactoros\Response\JsonResponse;
 use Psr\Http\Message\ResponseInterface;
@@ -20,11 +21,13 @@ use Ramon\PointSystem\Support\TransactionSerializer;
  * Returns the ledger for a single user, newest first, paginated. The viewer
  * may read their OWN ledger unconditionally; reading someone else's requires
  * the `pointSystem.viewTransactions` permission (admin/moderator audit). The
- * frontend profile tab only ever requests the viewer's own id, but the same
- * endpoint backs the admin "view a specific user" drill-down.
+ * frontend profile tab requests the owner's id; actors holding the audit
+ * permission may open it on anyone's profile.
  */
 class ListUserTransactionsController implements RequestHandlerInterface
 {
+    public function __construct(protected UrlGenerator $urls) {}
+
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
         $actor = RequestUtil::getActor($request);
@@ -55,8 +58,13 @@ class ListUserTransactionsController implements RequestHandlerInterface
         $total = (clone $builder)->count();
         $rows = $builder->offset($offset)->limit($limit)->get();
 
+        $referenceUrls = TransactionSerializer::referenceUrls($rows, $this->urls);
+
         return new JsonResponse([
-            'data' => $rows->map(fn (PointTransaction $t) => TransactionSerializer::serialize($t))->values()->toArray(),
+            'data' => $rows->map(fn (PointTransaction $t) => TransactionSerializer::serialize(
+                $t,
+                $referenceUrls[$t->reference_type.':'.$t->reference_id] ?? null
+            ))->values()->toArray(),
             'meta' => ['total' => (int) $total, 'offset' => $offset, 'limit' => $limit],
         ]);
     }

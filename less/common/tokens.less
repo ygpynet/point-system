@@ -93,13 +93,18 @@
   // Mapeiam nos tokens de alerta do core (`--alert-*-bg`), que o tema troca no
   // dark mode. Os literais que existiam antes (#b91c1c, #15803d, #b45309…) eram
   // valores de tema claro cravados: no escuro ficavam ilegíveis sobre o fundo.
-  // O `-fg` é o texto/glifo, o `-bg` é o tint de fundo do chip.
+  //
+  // O `-bg` é o tint de fundo do chip/glifo (fundo sólido do círculo do ícone).
+  // O `-fg` é a COR DO TEXTO em superfícies claras (cards, chips 10–18%):
+  // NÃO mapie em `--alert-*-color` — no core esse valor é BRANCO (texto sobre
+  // o alerta sólido), e branco sobre card claro fica invisível. Misturamos o
+  // matiz do alerta com a cor de texto: no claro escurece, no escuro clareia.
   --ps-danger:     var(--alert-error-bg, #d83e3e);
-  --ps-danger-fg:  var(--alert-error-color, #b91c1c);
+  --ps-danger-fg:  color-mix(in srgb, var(--ps-danger) 75%, var(--ps-text));
   --ps-success:    var(--alert-success-bg, #59b73e);
-  --ps-success-fg: var(--alert-success-color, #15803d);
+  --ps-success-fg: color-mix(in srgb, var(--ps-success) 75%, var(--ps-text));
   --ps-warning:    var(--alert-warning-bg, #e5a44a);
-  --ps-warning-fg: var(--alert-warning-color, #b45309);
+  --ps-warning-fg: color-mix(in srgb, var(--ps-warning) 75%, var(--ps-text));
 
   // Dourado da moeda. Não é status: é a identidade visual dos pontos, então
   // permanece constante entre os temas de propósito — só ganha nome para deixar

@@ -353,6 +353,44 @@ class ForumAttributes
             Schema\Boolean::make('pointSystemCanViewTransactions')
                 ->get(fn ($_, Context $context) => $context->getActor()->hasPermission('pointSystem.viewTransactions')),
 
+            // ── Points pool (积分池) ────────────────────────────────────────
+            // Master toggle + the SUM of every member's balance, computed
+            // once per TTL and shared by ALL visitors (public stat). The
+            // cache key is intentionally actor-agnostic — unlike the
+            // catalogs above, this number is site-wide. 60s staleness is
+            // imperceptible for a display stat and keeps the aggregate off
+            // the hot path (tips/check-ins mutate balances constantly).
+            Schema\Boolean::make('pointSystemPoolEnabled')
+                ->get(fn () => (bool) $this->settings->get('point-system.pool_enabled', true)),
+
+            Schema\Integer::make('pointSystemPoolTotal')
+                ->get(function () {
+                    if (! (bool) $this->settings->get('point-system.pool_enabled', true)) {
+                        return 0;
+                    }
+
+                    // rememberCatalog() is typed `: array` (catalogs), so the
+                    // scalar cache lives inline here. Any cache failure
+                    // degrades to a live SUM, same as the catalogs.
+                    try {
+                        $cache = app(\Illuminate\Contracts\Cache\Repository::class);
+                        $hit = $cache->get('point-system.pool.total');
+                        if ($hit !== null) {
+                            return (int) $hit;
+                        }
+                        $total = (int) \Ramon\PointSystem\Model\UserPoints::query()
+                            ->selectRaw('COALESCE(SUM(balance), 0) AS total')
+                            ->value('total');
+                        $cache->put('point-system.pool.total', $total, self::CATALOG_TTL);
+
+                        return $total;
+                    } catch (\Throwable) {
+                        return (int) \Ramon\PointSystem\Model\UserPoints::query()
+                            ->selectRaw('COALESCE(SUM(balance), 0) AS total')
+                            ->value('total');
+                    }
+                }),
+
             // Trade subsystem — exposes both the master toggle (so the UI
             // can hide the "Trade" button forum-wide) and the per-actor
             // permission (so the UI hides the button for users in groups

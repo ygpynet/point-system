@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ramon\PointSystem\Controller;
 
 use Flarum\Http\RequestUtil;
+use Flarum\Http\UrlGenerator;
 use Flarum\User\User;
 use Laminas\Diactoros\Response\JsonResponse;
 use Psr\Http\Message\ResponseInterface;
@@ -23,6 +24,8 @@ use Ramon\PointSystem\Support\TransactionSerializer;
  */
 class ListTransactionsController implements RequestHandlerInterface
 {
+    public function __construct(protected UrlGenerator $urls) {}
+
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
         $actor = RequestUtil::getActor($request);
@@ -69,8 +72,13 @@ class ListTransactionsController implements RequestHandlerInterface
         $total = (clone $builder)->count();
         $rows = $builder->offset($offset)->limit($limit)->get();
 
+        $referenceUrls = TransactionSerializer::referenceUrls($rows, $this->urls);
+
         return new JsonResponse([
-            'data' => $rows->map(fn (PointTransaction $t) => TransactionSerializer::serialize($t))->values()->toArray(),
+            'data' => $rows->map(fn (PointTransaction $t) => TransactionSerializer::serialize(
+                $t,
+                $referenceUrls[$t->reference_type.':'.$t->reference_id] ?? null
+            ))->values()->toArray(),
             'meta' => ['total' => (int) $total, 'offset' => $offset, 'limit' => $limit],
         ]);
     }

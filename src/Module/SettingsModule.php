@@ -49,6 +49,7 @@ class SettingsModule implements ModuleInterface
                 ->serializeToForum('pointSystem.trade_enabled', 'point-system.trade_enabled', 'boolval')
                 ->serializeToForum('pointSystem.user_submissions_enabled', 'point-system.user_submissions_enabled', 'boolval')
                 ->serializeToForum('pointSystem.tip_enabled', 'point-system.tip_enabled', 'boolval')
+                ->serializeToForum('pointSystem.pool_enabled', 'point-system.pool_enabled', 'boolval')
                 ->serializeToForum('pointSystem.tip_preset_amounts', 'point-system.tip_preset_amounts')
                 ->serializeToForum('pointSystem.tip_hourly_limit', 'point-system.tip_hourly_limit', 'intval')
                 ->default('point-system.enabled', true)
@@ -83,6 +84,7 @@ class SettingsModule implements ModuleInterface
                 ->default('point-system.trade_enabled', true)
                 ->default('point-system.user_submissions_enabled', false)
                 ->default('point-system.tip_enabled', true)
+                ->default('point-system.pool_enabled', true)
                 ->default('point-system.tip_preset_amounts', '[5,10,15,20]')
                 ->default('point-system.tip_hourly_limit', 0),
         ];

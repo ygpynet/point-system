@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { createCheckInWidget } from './components/CheckInWidget';
+import { createPoolWidget } from './components/PointsPoolWidget';
 
 /**
  * Registers the check-in widget with fof/forum-widgets-core. Admins can then
@@ -33,8 +34,18 @@ export default function registerWidget(app): void {
         placement: 'end',
         position: 1,
       })
+      .add({
+        // 积分池 — public stat, hidden entirely when the admin turns the
+        // feature off (isDisabled keeps it out of the Widgets admin UI too).
+        key: 'pointSystemPool',
+        component: createPoolWidget(WidgetBase),
+        isDisabled: () => !app.forum.attribute('pointSystemPoolEnabled'),
+        isUnique: true,
+        placement: 'end',
+        position: 2,
+      })
       .extend(app, 'ygpynet-point-system');
   } catch (e) {
-    console.warn('[ramon/point-system] check-in widget registration failed:', e);
+    console.warn('[ramon/point-system] widget registration failed:', e);
   }
 }

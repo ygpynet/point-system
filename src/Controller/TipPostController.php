@@ -90,7 +90,11 @@ class TipPostController implements RequestHandlerInterface
             // sender can't cover it, NOTHING changes. Tips received bypass the
             // daily earning cap. The ledger rows + auto-group sync happen inside
             // each leg, and the tip record is written after the move commits.
-            $this->points->transfer($actor, $recipient, $amount, 'tip', Post::class, $postId);
+            // reference_type uses the short slug ('post'), NOT Post::class —
+            // the serializer feeds it straight to the frontend, which
+            // localizes slugs via lib.ref.* (a class name would leak through
+            // untranslated, as it did before 2026_09_10).
+            $this->points->transfer($actor, $recipient, $amount, 'tip', 'post', $postId);
 
             // Record the tip so the post can show who tipped how much.
             // Stackable by design — a repeat tip is a fresh row.

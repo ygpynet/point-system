@@ -3,10 +3,11 @@ import app from 'flarum/forum/app';
 import UserPage from 'flarum/forum/components/UserPage';
 import Button from 'flarum/common/components/Button';
 import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
-import Avatar from 'flarum/common/components/Avatar';
+import Link from 'flarum/common/components/Link';
 import humanTime from 'flarum/common/utils/humanTime';
 import { pointsLabel } from '../../common/utils/pointsLabel';
 import { reasonLabel } from '../../common/utils/reasonLabel';
+import { referenceLabel } from '../../common/utils/referenceLabel';
 
 const PAGE_SIZE = 50;
 
@@ -142,12 +143,6 @@ export default class UserTransactionsPage extends UserPage {
         </div>
 
         <div className="PointSystemTransactionsPage-metaRow">
-          {this.viewingOther && (
-            <span className="PointSystemTransactionsPage-target">
-              <Avatar user={user} />
-              <span className="PointSystemTransactionsPage-targetName">{user?.displayName?.()}</span>
-            </span>
-          )}
           {balance != null && (
             <span className="PointSystemTransactionsPage-balance" title={t('balance')}>
               <i className={(app.forum.attribute('pointSystem.currency_icon') as string) || 'fas fa-coins'} aria-hidden="true" />
@@ -218,9 +213,7 @@ export default class UserTransactionsPage extends UserPage {
   renderRow(tx: any, t: (k: string, v?: any) => any) {
     const amount = Number(tx.amount) || 0;
     const credit = amount >= 0;
-    const reference = tx.referenceType
-      ? `${tx.referenceType}${tx.referenceId != null ? ' #' + tx.referenceId : ''}`
-      : '';
+    const reference = referenceLabel(tx.referenceType, tx.referenceId, app);
     const createdFull = tx.createdAt ? new Date(tx.createdAt).toLocaleString() : '';
 
     return (
@@ -234,7 +227,15 @@ export default class UserTransactionsPage extends UserPage {
             {reasonLabel(tx.reason, app)}
           </span>
           <span className="PointSystemTransactionsPage-info">
-            {reference && <span className="PointSystemTransactionsPage-reference">{reference}</span>}
+            {reference && reference !== '—' ? (
+              tx.referenceUrl ? (
+                <Link className="PointSystemTransactionsPage-reference" href={tx.referenceUrl} title={reference}>
+                  {reference}
+                </Link>
+              ) : (
+                <span className="PointSystemTransactionsPage-reference">{reference}</span>
+              )
+            ) : null}
             <time className="PointSystemTransactionsPage-time" datetime={tx.createdAt || undefined} title={createdFull}>
               {tx.createdAt ? humanTime(tx.createdAt) : '—'}
             </time>

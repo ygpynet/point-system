@@ -1,0 +1,44 @@
+// ─────────────────────────────────────────────────────────────
+// 积分池挂件（fof/forum-widgets-core，默认位于首页侧栏、签到挂件下方）。
+// 展示社区所有成员当前积分总和；数值由服务端每 60 秒聚合一次，
+// 以公共 forum 属性下发，这里只做纯渲染。
+// ─────────────────────────────────────────────────────────────
+
+.PointSystemPoolWidget-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ps-space-2);
+}
+
+.PointSystemPoolWidget-total {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+
+  > i {
+    align-self: center;
+    color: var(--ps-currency);
+    font-size: 20px;
+  }
+}
+
+// 数字本身是主角：大号、加粗、等宽数字，扫一眼就能读
+.PointSystemPoolWidget-amount {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.2;
+  font-variant-numeric: var(--ps-num-tabular);
+  color: var(--ps-text);
+}
+
+.PointSystemPoolWidget-unit {
+  color: var(--ps-text-muted);
+  font-size: 13px;
+}
+
+.PointSystemPoolWidget-help {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ps-text-muted);
+}

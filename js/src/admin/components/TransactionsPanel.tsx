@@ -3,8 +3,10 @@ import app from 'flarum/admin/app';
 import Component from 'flarum/common/Component';
 import Button from 'flarum/common/components/Button';
 import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
+import Link from 'flarum/common/components/Link';
 import { pointsLabel } from '../../common/utils/pointsLabel';
 import { reasonLabel } from '../../common/utils/reasonLabel';
+import { referenceLabel } from '../../common/utils/referenceLabel';
 
 const PAGE_SIZE = 50;
 
@@ -257,9 +259,7 @@ export default class TransactionsPanel extends Component {
     const amount = Number(tx.amount) || 0;
     const user = tx.user || null;
     const sign = amount >= 0 ? '+' : '';
-    const reference = tx.referenceType
-      ? `${tx.referenceType}${tx.referenceId != null ? ' #' + tx.referenceId : ''}`
-      : '—';
+    const reference = referenceLabel(tx.referenceType, tx.referenceId, app);
 
     return (
       <tr key={`tx-${tx.id}`} className="PointSystemAdmin-transactionsTable-row">
@@ -291,7 +291,11 @@ export default class TransactionsPanel extends Component {
           </code>
         </td>
         <td className="muted">
-          <small>{reference}</small>
+          {reference && reference !== '—' && tx.referenceUrl ? (
+            <Link href={tx.referenceUrl} title={reference}>{reference}</Link>
+          ) : (
+            <small>{reference}</small>
+          )}
         </td>
         <td>
           <small className="muted">{tx.createdAt ? new Date(tx.createdAt).toLocaleString() : '—'}</small>

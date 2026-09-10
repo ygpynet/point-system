@@ -50,28 +50,6 @@
     flex: 1 1 auto;
   }
 
-  // 管理员查看他人时的“目标用户”胶囊（镜像官方 UserCard 的排版）
-  &-target {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    padding: 4px 14px 4px 4px;
-    background: var(--ps-surface-muted);
-    border: 1px solid var(--ps-border-subtle);
-    border-radius: var(--ps-radius-pill);
-
-    .Avatar {
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-    }
-  }
-
-  &-targetName {
-    font-weight: 600;
-    white-space: nowrap;
-  }
-
   // 余额胶囊：右对齐金额列使用同一组数字排版，扫读时不跳字
   &-balance {
     display: inline-flex;
@@ -164,6 +142,19 @@
 
   &-reference {
     font-variant-numeric: var(--ps-num-tabular);
+
+    // 有 deep link 时是 <Link>：继承次要信息色，悬停点亮为主题色
+    &[href] {
+      color: var(--ps-text-muted);
+      text-decoration: none;
+      transition: color var(--ps-t-fast);
+
+      &:hover {
+        color: var(--ps-accent);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+    }
   }
 
   &-time {

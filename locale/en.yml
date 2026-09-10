@@ -1,24 +1,58 @@
 ygpynet-point-system:
-  reasons:
-    discussion_started: "Started a discussion"
-    post_posted: "Posted a reply"
-    user_registered: "Registered an account"
-    like_received: "Received a like"
-    checkin: "Daily check-in"
-    daily_login: "Daily login"
-    tier_claim: "Joined a group"
-    shop_claim: "Claimed a reward"
-    shop_purchase: "Shop purchase"
-    group_purchase: "Group purchase"
-    tip_out: "Tip sent"
-    tip_in: "Tip received"
-    admin_adjustment: "Admin adjustment"
-    manual: "Manual award"
-    trade_credit: "Trade credit"
-    trade_debit: "Trade debit"
-    discussion_started_revert: "Discussion start reverted"
-    post_posted_revert: "Reply reverted"
-    user_registered_revert: "Registration reverted"
+  # The `reasons` section MUST live under `lib.`: Flarum only packs
+  # translation IDs containing a `.forum.` / `.admin.` / `.lib.` segment
+  # into the frontend locale JS (AddTranslations::forFrontend) — a
+  # top-level `reasons.*` section passes neither filter, which is why the
+  # ledger used to show raw codes. `lib` ships to BOTH frontends.
+  lib:
+    reasons:
+      discussion_started: "Started a discussion"
+      post_posted: "Posted a reply"
+      user_registered: "Registered an account"
+      like_received: "Received a like"
+      like_given: "Liked a post"
+      checkin: "Daily check-in"
+      daily_login: "Daily login"
+      tier_claim: "Joined a group"
+      shop_claim: "Shop purchase"
+      shop_purchase: "Shop purchase"
+      group_purchase: "Group purchase"
+      tip_out: "Tip sent"
+      tip_in: "Tip received"
+      admin_adjustment: "Admin adjustment"
+      manual: "Manual award"
+      trade_credit: "Trade credit"
+      trade_debit: "Trade debit"
+      discussion_started_revert: "Discussion start reverted"
+      post_posted_revert: "Reply reverted"
+      user_registered_revert: "Registration reverted"
+      # Dotted reason codes actually written by the backend (reasonLabel
+      # normalizes dots to underscores before the lookup).
+      user_check_in: "Daily check-in"
+      user_checkin_makeup: "Make-up check-in"
+      pointSystem_manual: "Manual award"
+      admin_bulk: "Bulk award"
+      # Historical / third-party-written codes
+      user_daily_login: "Daily login"
+      giveaway_entry: "Giveaway entry"
+      trade: "Trade"
+      like_received_revert: "Like received reverted"
+      like_given_revert: "Like given reverted"
+    # Localized labels for reference_type slugs — under `lib.` for the same
+    # reason as `reasons` (see the comment above).
+    ref:
+      post: "Post"
+      discussion: "Discussion"
+      user: "User"
+      avatar_decoration: "Avatar frame"
+      name_decoration: "Name decoration"
+      title_decoration: "Title"
+      post_highlight_decoration: "Post highlight"
+      cover_decoration: "Cover"
+      group_offer: "Group"
+      shop_item: "Shop item"
+      giveaway: "Giveaway"
+      trade: "Trade"
   forum:
     notifications:
       points_added: "{admin} gave you {amount} points"
@@ -56,6 +90,11 @@ ygpynet-point-system:
     nav:
       shop: "Rewards"
       my_decorations: "My decorations"
+    pool:
+      widget_title: "Points pool"
+      total_title: "Community points total"
+      unit: "pts"
+      help: "The sum of points currently held by every member of the community."
     session_dropdown:
       my_decorations: "My decorations"
       trades: "Trades"
@@ -101,7 +140,6 @@ ygpynet-point-system:
       next: "Next"
       page_x_of_y: "Page {x} of {y}"
       export: "Export CSV"
-      viewing_other: "Viewing {username}'s points ledger"
       balance: "Balance"
     confirm:
       title: "Confirm purchase"
@@ -328,6 +366,8 @@ ygpynet-point-system:
       section_awards_help: "How many points users earn for each forum action."
       user_submissions_enabled: "Allow user-submitted decorations"
       user_submissions_enabled_help: "When on, registered users can submit their own decoration designs. Every submission lands in the moderation queue for admin approval before reaching the shop. URL-only for avatar/cover families — file uploads stay admin-only."
+      pool_enabled: "Points pool"
+      pool_enabled_help: "Show a \"Points pool\" widget on the index sidebar — the sum of the current balances of every community member. The aggregate refreshes every 60 seconds."
       enabled: "Enable point system"
       enabled_help: "Master switch. When off, no points are awarded."
       auto_group_enabled: "Enable auto-group tiers"

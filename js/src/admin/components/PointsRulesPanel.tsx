@@ -32,6 +32,7 @@ const SECTIONS: SectionDef[] = [
       { key: 'point-system.auto_group_enabled', transKey: 'auto_group_enabled', type: 'bool', defaultBool: true },
       { key: 'point-system.trade_enabled', transKey: 'trade_enabled', type: 'bool', defaultBool: true },
       { key: 'point-system.user_submissions_enabled', transKey: 'user_submissions_enabled', type: 'bool', defaultBool: false },
+      { key: 'point-system.pool_enabled', transKey: 'pool_enabled', type: 'bool', defaultBool: true },
     ],
   },
   {
