@@ -45,7 +45,19 @@ $modules = [
     new SettingsModule(),
 ];
 
+$enabled = [];
 foreach ($modules as $module) {
+    if ($module->enabled()) {
+        $enabled[$module::class] = $module;
+    }
+}
+
+foreach ($enabled as $class => $module) {
+    $missing = array_diff($module->dependsOn(), array_keys($enabled));
+    if ($missing !== []) {
+        throw new \LogicException($class.' depends on disabled/missing modules: '.implode(', ', $missing));
+    }
+
     array_push($extenders, ...$module->extenders());
 }
 

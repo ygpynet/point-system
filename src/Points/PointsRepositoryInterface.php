@@ -31,11 +31,20 @@ interface PointsRepositoryInterface
         bool $bypassCap = false,
     ): ?PointTransaction;
 
+    /**
+     * Reverse a prior credit. Without $transactionId / $metaFilter the most
+     * recent matching credit is reverted. Pass $transactionId to revert an
+     * exact ledger row, or $metaFilter (key/value pairs matched against the
+     * award's meta column) to target a specific credit instance — e.g.
+     * ['liker_id' => 7] for a like.received award.
+     */
     public function revert(
         User $user,
         string $reason,
         string $referenceType,
         int $referenceId,
+        ?int $transactionId = null,
+        ?array $metaFilter = null,
     ): void;
 
     public function deduct(

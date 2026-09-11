@@ -11,9 +11,11 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\UploadedFileInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use Ramon\PointSystem\Exception\UploadValidationException;
 use Ramon\PointSystem\FeatureGate;
 use Ramon\PointSystem\Model\AvatarDecoration;
 use Ramon\PointSystem\Model\ShopClaim;
+use Ramon\PointSystem\Support\ImageUploadGuard;
 
 /**
  * POST /api/point-system/avatar-decoration/upload
@@ -55,28 +57,6 @@ class UploadAvatarDecorationController implements RequestHandlerInterface
         protected FeatureGate $features,
     ) {}
 
-    /**
-     * Check whether the first bytes of the uploaded stream match the declared
-     * extension. Catches polyglot payloads (a `.gif`-named file whose body is
-     * actually `<?php ...`).
-     */
-    protected function signatureMatches(string $head, string $ext): bool
-    {
-        // PNG: 89 50 4E 47 0D 0A 1A 0A
-        if ($ext === 'png' || $ext === 'apng') {
-            return str_starts_with($head, "\x89PNG\r\n\x1a\n");
-        }
-        // GIF: GIF87a / GIF89a
-        if ($ext === 'gif') {
-            return str_starts_with($head, 'GIF87a') || str_starts_with($head, 'GIF89a');
-        }
-        // WebP: RIFF????WEBP
-        if ($ext === 'webp') {
-            return str_starts_with($head, 'RIFF') && substr($head, 8, 4) === 'WEBP';
-        }
-        return false;
-    }
-
     #[\Override]
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
@@ -94,31 +74,20 @@ class UploadAvatarDecorationController implements RequestHandlerInterface
 
         $files = $request->getUploadedFiles();
         $file  = $files['image'] ?? null;
-        if (! $file instanceof UploadedFileInterface || $file->getError() !== UPLOAD_ERR_OK) {
+        if (! $file instanceof UploadedFileInterface) {
             return new JsonResponse(['errors' => [['detail' => 'No image uploaded']]], 422);
         }
-        // PSR-7 permits getSize() returning null for chunked uploads with no
-        // Content-Length header; null > MAX would silently bypass the cap.
-        $size = $file->getSize();
-        if ($size === null || $size <= 0 || $size > self::MAX_BYTES) {
-            return new JsonResponse(['errors' => [['detail' => 'File too large (max 4MB)']]], 413);
-        }
 
-        $original = (string) $file->getClientFilename();
-        $ext = strtolower(pathinfo($original, PATHINFO_EXTENSION));
-        if (! in_array($ext, self::ALLOWED_EXT, true)) {
-            return new JsonResponse(['errors' => [['detail' => 'Only PNG, GIF, WebP, APNG allowed']]], 422);
-        }
-
-        // Magic-byte check on the actual stream: defeats polyglots that name
-        // themselves `.gif` but ship as a PHP payload. We sniff the first
-        // bytes and require they match the declared extension.
-        $stream = $file->getStream();
-        $stream->rewind();
-        $head = (string) $stream->read(16);
-        $stream->rewind();
-        if (! $this->signatureMatches($head, $ext)) {
-            return new JsonResponse(['errors' => [['detail' => 'File content does not match its extension']]], 422);
+        try {
+            ['ext' => $ext, 'contents' => $contents] = ImageUploadGuard::inspect(
+                $file,
+                self::MAX_BYTES,
+                self::ALLOWED_EXT,
+                self::ALLOWED_MIMES,
+                'Only PNG, GIF, WebP, APNG allowed',
+            );
+        } catch (UploadValidationException $e) {
+            return new JsonResponse(['errors' => [['detail' => $e->detail]]], $e->status);
         }
 
         $body = (array) $request->getParsedBody();
@@ -127,25 +96,6 @@ class UploadAvatarDecorationController implements RequestHandlerInterface
         // pending rows — anything else would let them tamper with an
         // already-approved decoration.
         $replaceId = $isManager && isset($body['replace_id']) ? (int) $body['replace_id'] : 0;
-
-        // Buffer the upload once. The magic-byte sniff above caught naive
-        // polyglots; finfo on the actual bytes closes the gap. finfo_buffer
-        // keeps the check off-disk — nothing is persisted until it passes.
-        $stream->rewind();
-        $contents = $stream->getContents();
-
-        $detected = '';
-        if (function_exists('finfo_open')) {
-            $finfo = finfo_open(FILEINFO_MIME_TYPE);
-            if ($finfo) {
-                $detected = (string) (finfo_buffer($finfo, $contents) ?: '');
-                finfo_close($finfo);
-            }
-        }
-        $allowedMimes = self::ALLOWED_MIMES[$ext] ?? [];
-        if (! in_array(strtolower($detected), $allowedMimes, true)) {
-            return new JsonResponse(['errors' => [['detail' => 'File MIME does not match its extension']]], 422);
-        }
 
         // Persist through the flarum-assets disk (rooted at public/assets).
         // The Flysystem local adapter creates the subdirectory, applies

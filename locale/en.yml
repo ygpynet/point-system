@@ -23,6 +23,7 @@ ygpynet-point-system:
       manual: "Manual award"
       trade_credit: "Trade credit"
       trade_debit: "Trade debit"
+      trade_reverted: "Trade reverted"
       discussion_started_revert: "Discussion start reverted"
       post_posted_revert: "Reply reverted"
       user_registered_revert: "Registration reverted"
@@ -38,6 +39,19 @@ ygpynet-point-system:
       trade: "Trade"
       like_received_revert: "Like received reverted"
       like_given_revert: "Like given reverted"
+    # Server-rendered detail texts for the stable error codes emitted by
+    # Support\ApiError. Under `lib.` so translations are also packed into the
+    # frontend locale JS for clients that branch on `errors[0].code`.
+    errors:
+      item_disabled: "This item is currently disabled."
+      item_not_yet_available: "This item is not on sale yet."
+      item_expired: "This item's sale window has ended."
+      item_sold_out: "This item is sold out."
+      item_group_restricted: "This item is restricted to certain groups."
+      insufficient_balance: "You don't have enough points."
+      feature_disabled: "This feature is currently disabled."
+      makeup_no_gap: "There is no missed day to make up."
+      makeup_limit: "Consecutive make-up limit reached. Check in for real first."
     # Localized labels for reference_type slugs — under `lib.` for the same
     # reason as `reasons` (see the comment above).
     ref:
@@ -95,6 +109,10 @@ ygpynet-point-system:
       total_title: "Community points total"
       unit: "pts"
       help: "The sum of points currently held by every member of the community."
+      remaining: "Remaining"
+      remaining_title: "Budget remaining: {remaining} pts (budget {size}, issued {issued})"
+      issued: "Issued"
+      of_size: "Issued {issued} / budget {size}"
     session_dropdown:
       my_decorations: "My decorations"
       trades: "Trades"
@@ -302,6 +320,7 @@ ygpynet-point-system:
       trade: "Trade decorations with other users"
       view_tip_list: "View the list of tippers"
       view_transactions: "View the points ledger"
+      view_pool: "View the points pool"
     tabs:
       rules: "Points & Rules"
       users: "Users"
@@ -367,7 +386,9 @@ ygpynet-point-system:
       user_submissions_enabled: "Allow user-submitted decorations"
       user_submissions_enabled_help: "When on, registered users can submit their own decoration designs. Every submission lands in the moderation queue for admin approval before reaching the shop. URL-only for avatar/cover families — file uploads stay admin-only."
       pool_enabled: "Points pool"
-      pool_enabled_help: "Show a \"Points pool\" widget on the index sidebar — the sum of the current balances of every community member. The aggregate refreshes every 60 seconds."
+      pool_enabled_help: "Show a \"Points pool\" widget on the index sidebar. The aggregate refreshes every 60 seconds."
+      pool_size: "Points pool budget"
+      pool_size_help: "The budget ceiling of the pool. Accounting: issued = the sum of the balances every member currently holds; remaining = budget − issued. Points earned via check-ins, likes, posts etc. drain the budget; points spent by users (e.g. joining giveaways, shop purchases) flow back into it automatically. 0 = no budget; the widget then only shows the current circulating total."
       enabled: "Enable point system"
       enabled_help: "Master switch. When off, no points are awarded."
       auto_group_enabled: "Enable auto-group tiers"

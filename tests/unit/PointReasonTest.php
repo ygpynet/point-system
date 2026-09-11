@@ -20,9 +20,34 @@ class PointReasonTest extends TestCase
         return PointReason::builtIn()->all();
     }
 
-    public function test_built_in_has_nineteen_reasons(): void
+    public function test_built_in_covers_every_documented_code(): void
     {
-        $this->assertCount(19, $this->reasons());
+        // Presence guard: each of these codes is written by real code paths
+        // and must keep resolving to a label. (An exact-count assertion rotted
+        // twice already — new reasons land here without updating a number.)
+        $expected = [
+            // Earning
+            'discussion.started', 'post.posted', 'user.registered',
+            'like.received', 'like.given', 'checkin', 'daily.login', 'tier.claim', 'shop.claim',
+            'user.check_in', 'user.checkin_makeup',
+            // Spending
+            'shop.purchase', 'group.purchase', 'tip.out',
+            // Transfers
+            'tip.in',
+            // Admin
+            'admin.adjustment', 'pointSystem.manual', 'admin.bulk',
+            // Trade
+            'trade.credit', 'trade.debit',
+            // Reverts
+            'discussion.started.revert', 'post.posted.revert', 'user.registered.revert',
+            'like.received.revert', 'like.given.revert',
+            // Legacy / third-party
+            'user.daily_login', 'giveaway.entry', 'trade',
+        ];
+
+        foreach ($expected as $code) {
+            $this->assertArrayHasKey($code, $this->reasons(), "reason {$code} must stay registered");
+        }
     }
 
     public function test_built_in_keys_are_unique(): void
@@ -38,6 +63,7 @@ class PointReasonTest extends TestCase
             $this->assertArrayHasKey('label', $data);
             $this->assertArrayHasKey('category', $data);
             $this->assertArrayHasKey('countsTowardDailyCap', $data);
+            $this->assertArrayHasKey('idempotent', $data);
             $this->assertContains($data['category'], [
                 PointReason::CATEGORY_EARN,
                 PointReason::CATEGORY_SPEND,
@@ -45,6 +71,7 @@ class PointReasonTest extends TestCase
                 PointReason::CATEGORY_ADMIN,
             ], "category for {$code} is valid");
             $this->assertIsBool($data['countsTowardDailyCap']);
+            $this->assertIsBool($data['idempotent']);
         }
     }
 
@@ -74,7 +101,41 @@ class PointReasonTest extends TestCase
         $this->assertFalse($r->has('this.does.not.exist'));
         $this->assertNull($r->category('this.does.not.exist'));
         // Unknown codes still resolve to a translation key so the UI never
-        // crashes on a raw code (PS-REA-002 / reasonLabel fallback).
-        $this->assertSame('ygpynet-point-system.reasons.this.does.not.exist', $r->labelKey('this.does.not.exist'));
+        // crashes on a raw code (PS-REA-002 / reasonLabel fallback). The key
+        // carries the `lib.` segment so it reaches the frontend locale JS and
+        // dots are normalized to underscores before the lookup.
+        $this->assertSame('ygpynet-point-system.lib.reasons.this_does_not_exist', $r->labelKey('this.does.not.exist'));
+    }
+
+    public function test_entity_scoped_reasons_are_idempotent(): void
+    {
+        $r = PointReason::builtIn();
+
+        // One discussion / one post / one registration: a repeated award for
+        // the same reference is a duplicate (queue retry, re-fired event) and
+        // the ledger must skip it.
+        $this->assertTrue($r->isIdempotent('discussion.started'));
+        $this->assertTrue($r->isIdempotent('post.posted'));
+        $this->assertTrue($r->isIdempotent('user.registered'));
+
+        // Repeatable reasons: a post can be liked many times; tips, claims
+        // and admin adjustments are legitimately repeatable.
+        foreach (['like.received', 'like.given', 'checkin', 'shop.claim', 'tip.out', 'tip.in', 'admin.adjustment'] as $code) {
+            $this->assertFalse($r->isIdempotent($code), "{$code} must allow repeats");
+        }
+
+        // Unknown codes default to repeatable — a missing flag must never
+        // silently drop a legitimate third-party award.
+        $this->assertFalse($r->isIdempotent('acme.custom'));
+    }
+
+    public function test_registered_reason_can_declare_idempotency(): void
+    {
+        $r = PointReason::builtIn();
+
+        $r->register('acme.once_per_entity', 'acme_once', PointReason::CATEGORY_EARN, true, true);
+
+        $this->assertTrue($r->has('acme.once_per_entity'));
+        $this->assertTrue($r->isIdempotent('acme.once_per_entity'));
     }
 }

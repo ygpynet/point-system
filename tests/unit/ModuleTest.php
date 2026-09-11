@@ -54,4 +54,21 @@ class ModuleTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         (new PointEarner())->add(\stdClass::class);
     }
+
+    public function test_modules_default_to_enabled_without_dependencies(): void
+    {
+        foreach ([new EarningModule(), new ApiModule(), new SettingsModule()] as $module) {
+            $this->assertTrue($module->enabled(), $module::class.' should default to enabled');
+            $this->assertSame([], $module->dependsOn(), $module::class.' should default to no deps');
+        }
+    }
+
+    public function test_likes_module_declares_itself_disabled_without_flarum_likes(): void
+    {
+        if (class_exists(\Flarum\Likes\Event\PostWasLiked::class)) {
+            $this->markTestSkipped('flarum/likes is installed');
+        }
+
+        $this->assertFalse((new LikesModule())->enabled());
+    }
 }

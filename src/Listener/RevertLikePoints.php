@@ -23,8 +23,11 @@ class RevertLikePoints implements PointEarner
         $post = $event->post;
         $liker = $event->user;
 
+        // like.received credits are stamped with meta['liker_id'] at award
+        // time; filtering by it reverts THAT liker's credit precisely, instead
+        // of whatever same-post credit happens to be newest.
         if ($post->user && $post->user->id !== $liker->id) {
-            $this->points->revert($post->user, 'like.received', 'post', $post->id);
+            $this->points->revert($post->user, 'like.received', 'post', $post->id, null, ['liker_id' => $liker->id]);
         }
         $this->points->revert($liker, 'like.given', 'post', $post->id);
     }

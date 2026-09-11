@@ -16,7 +16,7 @@ use Ramon\PointSystem\Listener\InitUserPoints;
  * {@see PointEarner} extender so the seam is identical for built-in and
  * third-party earners.
  */
-class EarningModule implements ModuleInterface
+class EarningModule extends AbstractModule
 {
     public function extenders(): array
     {

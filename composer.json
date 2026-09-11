@@ -73,6 +73,7 @@
   },
   "require-dev": {
     "flarum/realtime": "^2.0.0",
-    "phpunit/phpunit": "^11"
+    "phpunit/phpunit": "^11",
+    "phpstan/phpstan": "^2.2"
   }
 }

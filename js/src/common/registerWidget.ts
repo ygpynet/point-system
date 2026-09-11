@@ -35,11 +35,15 @@ export default function registerWidget(app): void {
         position: 1,
       })
       .add({
-        // 积分池 — public stat, hidden entirely when the admin turns the
-        // feature off (isDisabled keeps it out of the Widgets admin UI too).
+        // 积分池 — hidden when the admin turns the feature off (isDisabled
+        // keeps it out of the Widgets admin UI too) AND when the viewer's
+        // group lacks `pointSystem.viewPool` (Permissions page); the server
+        // also refuses to serialize the pool aggregate without it.
         key: 'pointSystemPool',
         component: createPoolWidget(WidgetBase),
-        isDisabled: () => !app.forum.attribute('pointSystemPoolEnabled'),
+        isDisabled: () =>
+          !app.forum.attribute('pointSystemPoolEnabled') ||
+          !app.forum.attribute('pointSystemCanViewPool'),
         isUnique: true,
         placement: 'end',
         position: 2,

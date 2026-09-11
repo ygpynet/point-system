@@ -1,4 +1,17 @@
 ygpynet-point-system:
+  lib:
+    errors:
+      item_disabled: "Este item está desativado no momento."
+      item_not_yet_available: "Este item ainda não está à venda."
+      item_expired: "O período de venda deste item terminou."
+      item_sold_out: "Este item esgotou."
+      item_group_restricted: "Este item é restrito a determinados grupos."
+      insufficient_balance: "Você não tem pontos suficientes."
+      feature_disabled: "Este recurso está desativado no momento."
+      makeup_no_gap: "Não há dia perdido para repor."
+      makeup_limit: "Limite de reposições consecutivas atingido. Faça um check-in real primeiro."
+    reasons:
+      trade_reverted: "Troca revertida"
   forum:
     checkin:
       widget_title: "Check-in diário"
@@ -263,6 +276,8 @@ ygpynet-point-system:
       manage: "Gerenciar o sistema de pontos"
       trade: "Trocar decorações com outros usuários"
       view_tip_list: "Ver lista de gorjetas"
+      view_transactions: "Ver o extrato de pontos"
+      view_pool: "Ver o cofre de pontos"
     tabs:
       rules: "Pontos & Regras"
       users: "Usuários"

@@ -32,7 +32,7 @@ final class PointReason
     public const CATEGORY_ADMIN = 'admin';
 
     /**
-     * @var array<string, array{label: string, category: string, countsTowardDailyCap: bool}>
+     * @var array<string, array{label: string, category: string, countsTowardDailyCap: bool, idempotent: bool}>
      */
     private array $reasons = [];
 
@@ -41,11 +41,13 @@ final class PointReason
         string $label,
         string $category = self::CATEGORY_EARN,
         bool $countsTowardDailyCap = true,
+        bool $idempotent = false,
     ): void {
         $this->reasons[$code] = [
             'label' => $label,
             'category' => $category,
             'countsTowardDailyCap' => $countsTowardDailyCap,
+            'idempotent' => $idempotent,
         ];
     }
 
@@ -75,7 +77,19 @@ final class PointReason
         return $this->reasons[$code]['countsTowardDailyCap'] ?? true;
     }
 
-    /** @return array<string, array{label: string, category: string, countsTowardDailyCap: bool}> */
+    /**
+     * True when the reason maps 1:1 to a single domain entity (one
+     * discussion, one post, one registration), so a repeated award with the
+     * same (reason, reference_type, reference_id) is a duplicate — usually a
+     * domain event re-fired under a queue retry — and the ledger must skip
+     * it. PointsRepository drives its dedupe guard from this flag.
+     */
+    public function isIdempotent(string $code): bool
+    {
+        return $this->reasons[$code]['idempotent'] ?? false;
+    }
+
+    /** @return array<string, array{label: string, category: string, countsTowardDailyCap: bool, idempotent: bool}> */
     public function all(): array
     {
         return $this->reasons;
@@ -85,9 +99,11 @@ final class PointReason
     {
         $r = new self();
         // Earning
-        $r->register('discussion.started', 'discussion_started', self::CATEGORY_EARN, true);
-        $r->register('post.posted', 'post_posted', self::CATEGORY_EARN, true);
-        $r->register('user.registered', 'user_registered', self::CATEGORY_EARN, true);
+        // Entity-scoped reasons are idempotent: the dedupe guard skips a
+        // second award for the same (reason, reference_type, reference_id).
+        $r->register('discussion.started', 'discussion_started', self::CATEGORY_EARN, true, true);
+        $r->register('post.posted', 'post_posted', self::CATEGORY_EARN, true, true);
+        $r->register('user.registered', 'user_registered', self::CATEGORY_EARN, true, true);
         $r->register('like.received', 'like_received', self::CATEGORY_EARN, true);
         $r->register('like.given', 'like_given', self::CATEGORY_EARN, true);
         $r->register('checkin', 'checkin', self::CATEGORY_EARN, true);
@@ -112,6 +128,9 @@ final class PointReason
         // Trade
         $r->register('trade.credit', 'trade_credit', self::CATEGORY_TRANSFER, false);
         $r->register('trade.debit', 'trade_debit', self::CATEGORY_SPEND, false);
+        // Written by TradeRepository::revert() when an admin undoes a completed
+        // trade — the label lookup must resolve it, not fall back to the raw code.
+        $r->register('trade_reverted', 'trade_reverted', self::CATEGORY_ADMIN, false);
         // Reverts (negative mirrors of the above) — registered so the label
         // lookup still resolves; they keep the source category.
         $r->register('discussion.started.revert', 'discussion_started_revert', self::CATEGORY_EARN, true);

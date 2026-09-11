@@ -12,6 +12,7 @@ use Illuminate\Database\ConnectionInterface;
 use PHPUnit\Framework\TestCase;
 use Ramon\PointSystem\Exception\DuplicateTransactionException;
 use Ramon\PointSystem\Repository\PointsRepository;
+use Ramon\PointSystem\Support\PointReason;
 
 /**
  * Covers the orchestration-level behaviour of PointsRepository that can be
@@ -21,26 +22,28 @@ use Ramon\PointSystem\Repository\PointsRepository;
  */
 class PointsRepositoryTest extends TestCase
 {
-    private function makeRepo(array $onlyMethods = []): PointsRepository
+    private function makeRepo(array $onlyMethods = [], ?\Illuminate\Database\ConnectionInterface $dbOverride = null): PointsRepository
     {
         $settings = $this->createMock(SettingsRepositoryInterface::class);
         $settings->method('get')->willReturnCallback(
             fn (string $key, $default = null) => $key === 'point-system.enabled' ? true : $default
         );
 
-        $db = $this->createMock(ConnectionInterface::class);
+        $db = $dbOverride ?? $this->createMock(ConnectionInterface::class);
         // Make transaction() execute the closure synchronously so the
         // orchestration runs without a real connection.
-        $db->method('transaction')->willReturnCallback(fn (callable $cb) => $cb());
+        if ($dbOverride === null) {
+            $db->method('transaction')->willReturnCallback(fn (callable $cb) => $cb());
+        }
 
         $dispatcher = $this->createMock(Dispatcher::class);
 
         if ($onlyMethods === []) {
-            return new PointsRepository($settings, $dispatcher, $db);
+            return new PointsRepository($settings, $dispatcher, $db, PointReason::builtIn());
         }
 
         return $this->getMockBuilder(PointsRepository::class)
-            ->setConstructorArgs([$settings, $dispatcher, $db])
+            ->setConstructorArgs([$settings, $dispatcher, $db, PointReason::builtIn()])
             ->onlyMethods($onlyMethods)
             ->getMock();
     }
@@ -67,7 +70,7 @@ class PointsRepositoryTest extends TestCase
         $db = $this->createMock(ConnectionInterface::class);
         $dispatcher = $this->createMock(Dispatcher::class);
 
-        $repo = new PointsRepository($settings, $dispatcher, $db);
+        $repo = new PointsRepository($settings, $dispatcher, $db, PointReason::builtIn());
 
         $this->assertNull($repo->award($this->userMock(), 100, 'checkin'));
     }
@@ -82,31 +85,35 @@ class PointsRepositoryTest extends TestCase
 
     public function test_transfer_calls_deduct_and_award_with_suffixed_reasons(): void
     {
-        $repo = $this->makeRepo(['deduct', 'award']);
+        $repo = $this->makeRepo(['deductWithin', 'awardWithin']);
 
         $from = $this->userMock();
         $to = $this->userMock();
+        $fromPoints = new \Ramon\PointSystem\Model\UserPoints();
+        $toPoints = new \Ramon\PointSystem\Model\UserPoints();
 
         $repo->expects($this->once())
-            ->method('deduct')
-            ->with($from, 100, 'tip.out', Post::class, 5);
+            ->method('deductWithin')
+            ->with($from, 100, 'tip.out', Post::class, 5)
+            ->willReturn([$fromPoints, null]);
 
         $repo->expects($this->once())
-            ->method('award')
-            ->with($to, 100, 'tip.in', Post::class, 5, null, true);
+            ->method('awardWithin')
+            ->with($to, 100, 'tip.in', Post::class, 5, null, true, false)
+            ->willReturn([$toPoints, null]);
 
         $repo->transfer($from, $to, 100, 'tip', Post::class, 5);
     }
 
     public function test_transfer_rolls_back_when_deduct_throws(): void
     {
-        $repo = $this->makeRepo(['deduct', 'award']);
+        $repo = $this->makeRepo(['deductWithin', 'awardWithin']);
 
-        $repo->method('deduct')
+        $repo->method('deductWithin')
             ->willThrowException(new \DomainException('Insufficient point balance'));
 
         // The receiver must never be credited if the sender can't pay.
-        $repo->expects($this->never())->method('award');
+        $repo->expects($this->never())->method('awardWithin');
 
         $this->expectException(\DomainException::class);
         $repo->transfer($this->userMock(), $this->userMock(), 100, 'tip', Post::class, 5);
@@ -132,13 +139,72 @@ class PointsRepositoryTest extends TestCase
 
     public function test_idempotent_reasons_constant_matches_documented_set(): void
     {
-        $constant = (new \ReflectionClass(PointsRepository::class))
-            ->getConstant('IDEMPOTENT_REASONS');
+        $repo = $this->makeRepo();
+        $method = new \ReflectionMethod(PointsRepository::class, 'isIdempotentReason');
+        $method->setAccessible(true);
 
-        $this->assertSame(
-            ['discussion.started', 'post.posted', 'user.registered'],
-            $constant
-        );
+        // The registry is the single source: these three carry idempotent=true
+        // there and everything else defaults to repeatable.
+        foreach (['discussion.started', 'post.posted', 'user.registered'] as $code) {
+            $this->assertTrue($method->invoke($repo, $code), "{$code} must be idempotent");
+        }
+        foreach (['like.received', 'checkin', 'tip.out', 'admin.adjustment', 'totally.unknown'] as $code) {
+            $this->assertFalse($method->invoke($repo, $code), "{$code} must allow repeats");
+        }
+    }
+
+    public function test_meta_matches_filters_credit_rows(): void
+    {
+        $method = new \ReflectionMethod(PointsRepository::class, 'metaMatches');
+        $method->setAccessible(true);
+
+        $nullFilter = $method->invoke(null, null, null);
+        $this->assertTrue($nullFilter);
+
+        $meta = ['liker_id' => 7, 'extra' => 'x'];
+        $this->assertTrue($method->invoke(null, $meta, ['liker_id' => 7]));
+        $this->assertTrue($method->invoke(null, $meta, []));
+        $this->assertFalse($method->invoke(null, $meta, ['liker_id' => 8]));
+        $this->assertFalse($method->invoke(null, $meta, ['liker_id' => '7']));
+        $this->assertFalse($method->invoke(null, $meta, ['missing_key' => 1]));
+        $this->assertFalse($method->invoke(null, null, ['liker_id' => 7]));
+    }
+
+    /**
+     * PS-UNIQ-001: unique-violation detection is driver-specific, not a
+     * message substring guess. mysql / pgsql / sqlite branches plus the
+     * generic fallback for unknown drivers.
+     */
+    public function test_is_unique_violation_resolves_per_driver(): void
+    {
+        $cases = [
+            ['mysql', new \Exception('SQLSTATE[23000]: 1062 Duplicate entry', 23000), true],
+            ['mysql', new \Exception('Duplicate entry for key', 0), true],
+            ['mysql', new \Exception('some other failure', 1045), false],
+            ['pgsql', new \Exception('duplicate key value violates unique constraint', 0), true],
+            ['pgsql', new \Exception('duplicate key value violates unique constraint', 23505), true],
+            ['pgsql', new \Exception('syntax error', 42601), false],
+            ['sqlite', new \Exception('UNIQUE constraint failed: x.y', 19), true],
+            ['sqlite', new \Exception('no such table', 1), false],
+            ['sqlsrv', new \Exception('Cannot insert duplicate key row', 2601), true],
+            ['weird', new \Exception('a unique thing failed', 0), true],
+            ['weird', new \Exception('unrelated', 12345), false],
+        ];
+
+        foreach ($cases as [$driver, $exception, $expected]) {
+            $db = $this->getMockBuilder(\Illuminate\Database\MySqlConnection::class)
+                ->disableOriginalConstructor()
+                ->onlyMethods(['getDriverName'])
+                ->getMock();
+            $db->method('getDriverName')->willReturn($driver);
+
+            $repo = $this->makeRepo([], $db);
+
+            $method = new \ReflectionMethod(PointsRepository::class, 'isUniqueViolation');
+            $method->setAccessible(true);
+
+            $this->assertSame($expected, $method->invoke($repo, $exception), "driver {$driver}: {$exception->getMessage()}");
+        }
     }
 
     /**
@@ -158,7 +224,7 @@ class PointsRepositoryTest extends TestCase
         $db->method('transaction')
             ->willThrowException(new DuplicateTransactionException());
 
-        $repo = new PointsRepository($settings, $this->createMock(Dispatcher::class), $db);
+        $repo = new PointsRepository($settings, $this->createMock(Dispatcher::class), $db, PointReason::builtIn());
 
         $this->assertNull($repo->award($this->userMock(), 10, 'checkin'));
     }

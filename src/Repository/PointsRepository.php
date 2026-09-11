@@ -12,6 +12,7 @@ use Illuminate\Database\ConnectionInterface;
 use Ramon\PointSystem\Event\PointsAwarded;
 use Ramon\PointSystem\Exception\DuplicateTransactionException;
 use Ramon\PointSystem\Support\DayBoundary;
+use Ramon\PointSystem\Support\PointReason;
 use Ramon\PointSystem\Model\GroupOffer;
 use Ramon\PointSystem\Model\PointTransaction;
 use Ramon\PointSystem\Model\UserPoints;
@@ -54,6 +55,7 @@ class PointsRepository implements PointsRepositoryInterface
         protected SettingsRepositoryInterface $settings,
         protected Dispatcher $events,
         protected ConnectionInterface $db,
+        protected PointReason $reasons,
     ) {}
 
     /**
@@ -97,29 +99,14 @@ class PointsRepository implements PointsRepositoryInterface
     }
 
     /**
-     * Reasons that map 1:1 to a single domain entity (one discussion, one post,
-     * one registration). A second {@see award()} carrying the same
-     * (reason, reference_type, reference_id) is therefore a duplicate — most
-     * commonly a domain event re-fired under a queue retry or worker restart —
-     * and must be skipped so the user is never double-credited.
-     *
-     * Like awards are deliberately NOT in this list: a post can receive many
-     * likes, each a legitimate, separate award that must not be de-duplicated.
-     *
-     * @var string[]
-     */
-    private const IDEMPOTENT_REASONS = [
-        'discussion.started',
-        'post.posted',
-        'user.registered',
-    ];
-
-    /**
      * Is this a reason that must never be awarded twice for the same reference?
+     * Delegates to the PointReason registry: built-in entity-scoped reasons
+     * declare `idempotent = true` there, and third-party earners can register
+     * their own codes with the same flag instead of editing this class.
      */
     private function isIdempotentReason(string $reason): bool
     {
-        return in_array($reason, self::IDEMPOTENT_REASONS, true);
+        return $this->reasons->isIdempotent($reason);
     }
 
     /**
@@ -144,90 +131,11 @@ class PointsRepository implements PointsRepositoryInterface
 
         $tx = null;
         try {
-            $points = $this->db->transaction(function () use ($user, $amount, $reason, $referenceType, $referenceId, $meta, $bypassCap, &$tx) {
-            $points = $this->getOrCreateForUpdate($user);
+            [$points, $tx] = $this->db->transaction(
+                fn () => $this->awardWithin($user, $amount, $reason, $referenceType, $referenceId, $meta, $bypassCap)
+            );
 
-            // Daily earning cap. Resets on the server's calendar day
-            // (DayBoundary), exactly like the check-in streak. Admin manual
-            // grants pass $bypassCap = true and are never limited.
-            $effective = $amount;
-            if (! $bypassCap) {
-                $cap = $this->settingInt('point-system.daily_earn_cap', 0);
-                if ($cap > 0) {
-                    $today = DayBoundary::today();
-                    if ($points->daily_earned_date !== $today) {
-                        $points->daily_earned = 0;
-                        $points->daily_earned_date = $today;
-                    }
-                    $remaining = max(0, $cap - (int) $points->daily_earned);
-                    if ($remaining <= 0) {
-                        return $points;
-                    }
-                    $effective = min($amount, $remaining);
-                }
-            }
-
-            // Idempotency guard. Runs under the row lock so a concurrent
-            // re-dispatch can't slip a second credit between the check and the
-            // write. Only entity-scoped reasons participate (see
-            // {@see IDEMPOTENT_REASONS}); like awards are intentionally exempt.
-            if ($referenceType !== null && $referenceId !== null && $this->isIdempotentReason($reason)) {
-                $already = PointTransaction::where('user_id', $user->id)
-                    ->where('reason', $reason)
-                    ->where('reference_type', $referenceType)
-                    ->where('reference_id', $referenceId)
-                    ->where('amount', '>', 0)
-                    ->exists();
-
-                if ($already) {
-                    return $points;
-                }
-            }
-
-            // Deterministic key for entity-scoped reasons so the DB unique index
-            // (point_system_tx_dedupe) can reject a duplicate credit that slips
-            // past the existence guard under a concurrent / retried dispatch.
-            $dedupeKey = ($referenceType !== null && $referenceId !== null && $this->isIdempotentReason($reason))
-                ? "{$reason}|{$referenceType}|{$referenceId}"
-                : null;
-
-            $points->lifetime += $effective;
-            $points->balance  += $effective;
-            $points->daily_earned += $effective;
-            $points->raise(new PointsAwarded($user, $effective, $reason));
-            $points->save();
-
-            // The unique index is the last line of defense: if a duplicate still
-            // reaches here (same-row race that slipped past the existence guard),
-            // the create throws. We deliberately re-throw a marker so the whole
-            // DB transaction aborts — rolling back the balance/daily-cap increment
-            // performed just above. Treating the duplicate as "already credited"
-            // (no row, no balance change) is only correct if the increment is
-            // also undone; swallowing the exception here would commit the orphaned
-            // balance bump and let a retried dispatch double-credit.
-            try {
-                $tx = PointTransaction::create([
-                    'user_id' => $user->id,
-                    'amount' => $effective,
-                    'reason' => $reason,
-                    'reference_type' => $referenceType,
-                    'reference_id' => $referenceId,
-                    'meta' => $meta,
-                    'dedupe_key' => $dedupeKey,
-                ]);
-            } catch (\Illuminate\Database\QueryException $e) {
-                if (! $this->isUniqueViolation($e)) {
-                    throw $e;
-                }
-                throw new \Ramon\PointSystem\Exception\DuplicateTransactionException();
-            }
-
-            $this->syncAutoGroups($user, $points);
-
-            return $points;
-        });
-
-        $this->dispatchEventsFor($points);
+            $this->dispatchEventsFor($points);
         } catch (\Ramon\PointSystem\Exception\DuplicateTransactionException $e) {
             // Transaction rolled back as a duplicate credit: nothing to persist,
             // nothing to announce.
@@ -238,27 +146,156 @@ class PointsRepository implements PointsRepositoryInterface
     }
 
     /**
+     * The award leg WITHOUT its own transaction or event flush — one atomic
+     * unit of cap-checking, idempotency-gating, crediting and ledger writing.
+     * Callers: award() (wraps in a transaction, flushes events on commit) and
+     * transfer() (runs both legs inside ONE transaction so a mid-transfer
+     * failure can never leave exactly one side changed, and so no leg's events
+     * leak to listeners before the whole unit has committed).
+     *
+     * @return array{0: UserPoints, 1: PointTransaction|null}
+     */
+    protected function awardWithin(
+        User $user,
+        int $amount,
+        string $reason,
+        ?string $referenceType,
+        ?int $referenceId,
+        ?array $meta,
+        bool $bypassCap,
+        bool $touchLifetime = true,
+    ): array {
+        $tx = null;
+        $points = $this->getOrCreateForUpdate($user);
+
+        // Daily earning cap. Resets on the server's calendar day
+        // (DayBoundary), exactly like the check-in streak. Admin manual
+        // grants pass $bypassCap = true and are never limited.
+        $effective = $amount;
+        if (! $bypassCap) {
+            $cap = $this->settingInt('point-system.daily_earn_cap', 0);
+            if ($cap > 0) {
+                $today = DayBoundary::today();
+                if ($points->daily_earned_date !== $today) {
+                    $points->daily_earned = 0;
+                    $points->daily_earned_date = $today;
+                }
+                $remaining = max(0, $cap - (int) $points->daily_earned);
+                if ($remaining <= 0) {
+                    return [$points, null];
+                }
+                $effective = min($amount, $remaining);
+            }
+        }
+
+        // Idempotency guard. Runs under the row lock so a concurrent
+        // re-dispatch can't slip a second credit between the check and the
+        // write. Only reasons registered with idempotent=true participate
+        // (see PointReason::isIdempotent); like awards are exempt.
+        if ($referenceType !== null && $referenceId !== null && $this->isIdempotentReason($reason)) {
+            $already = PointTransaction::where('user_id', $user->id)
+                ->where('reason', $reason)
+                ->where('reference_type', $referenceType)
+                ->where('reference_id', $referenceId)
+                ->where('amount', '>', 0)
+                ->exists();
+
+            if ($already) {
+                return [$points, null];
+            }
+        }
+
+        // Deterministic key for entity-scoped reasons so the DB unique index
+        // (point_system_tx_dedupe) can reject a duplicate credit that slips
+        // past the existence guard under a concurrent / retried dispatch.
+        $dedupeKey = ($referenceType !== null && $referenceId !== null && $this->isIdempotentReason($reason))
+            ? "{$reason}|{$referenceType}|{$referenceId}"
+            : null;
+
+        // Lifetime tracks points EARNED through forum activity. Transfer
+        // credits are a movement, not an achievement — the docblock of
+        // transfer() already documented that intent, and TradeRepository's
+        // point movement never touches lifetime either. Feeding received
+        // tips into lifetime silently pushed users toward auto-group tier
+        // thresholds for something they were given, not earned.
+        if ($touchLifetime) {
+            $points->lifetime += $effective;
+        }
+        $points->balance  += $effective;
+        $points->daily_earned += $effective;
+        $points->raise(new PointsAwarded($user, $effective, $reason));
+        $points->save();
+
+        // The unique index is the last line of defense: if a duplicate still
+        // reaches here (same-row race that slipped past the existence guard),
+        // the create throws. We deliberately re-throw a marker so the whole
+        // DB transaction aborts — rolling back the balance/daily-cap increment
+        // performed just above. Treating the duplicate as "already credited"
+        // (no row, no balance change) is only correct if the increment is
+        // also undone; swallowing the exception here would commit the orphaned
+        // balance bump and let a retried dispatch double-credit.
+        try {
+            $tx = PointTransaction::create([
+                'user_id' => $user->id,
+                'amount' => $effective,
+                'reason' => $reason,
+                'reference_type' => $referenceType,
+                'reference_id' => $referenceId,
+                'meta' => $meta,
+                'dedupe_key' => $dedupeKey,
+            ]);
+        } catch (\Illuminate\Database\QueryException $e) {
+            if (! $this->isUniqueViolation($e)) {
+                throw $e;
+            }
+            throw new \Ramon\PointSystem\Exception\DuplicateTransactionException();
+        }
+
+        $this->syncAutoGroups($user, $points);
+
+        return [$points, $tx];
+    }
+
+    /**
      * Reverse a prior credit. Lifetime CAN drop here because the original action
      * was undone (e.g. user un-liked a post). Skips if no matching credit exists.
+     *
+     * Targeting:
+     *   - $transactionId given → revert exactly that row (must belong to the
+     *     user and be a positive credit); silently skips otherwise.
+     *   - $metaFilter given → pick the most recent matching credit whose meta
+     *     carries every key/value pair. This is how like.received stays
+     *     precise: the award stamps meta['liker_id'], so un-liking reverses
+     *     THAT liker's credit instead of whatever credit happens to be newest.
+     *   - neither → most recent matching credit (legacy behaviour).
      */
     public function revert(
         User $user,
         string $reason,
         string $referenceType,
         int $referenceId,
+        ?int $transactionId = null,
+        ?array $metaFilter = null,
     ): void {
         if (! $this->isEnabled()) {
             return;
         }
 
-        $points = $this->db->transaction(function () use ($user, $reason, $referenceType, $referenceId) {
-            $tx = PointTransaction::where('user_id', $user->id)
+        $points = $this->db->transaction(function () use ($user, $reason, $referenceType, $referenceId, $transactionId, $metaFilter) {
+            $query = PointTransaction::where('user_id', $user->id)
                 ->where('reason', $reason)
                 ->where('reference_type', $referenceType)
                 ->where('reference_id', $referenceId)
-                ->where('amount', '>', 0)
-                ->orderByDesc('id')
-                ->first();
+                ->where('amount', '>', 0);
+
+            if ($transactionId !== null) {
+                $tx = $query->where('id', $transactionId)->first();
+            } else {
+                $candidates = $query->orderByDesc('id')->limit(50)->get();
+                $tx = $candidates->first(
+                    fn (PointTransaction $row) => self::metaMatches($row->meta, $metaFilter)
+                );
+            }
 
             if (! $tx) {
                 return null;
@@ -288,6 +325,22 @@ class PointsRepository implements PointsRepositoryInterface
         }
     }
 
+    private static function metaMatches(?array $meta, ?array $filter): bool
+    {
+        if ($filter === null || $filter === []) {
+            return true;
+        }
+        if ($meta === null) {
+            return false;
+        }
+        foreach ($filter as $key => $value) {
+            if (($meta[$key] ?? null) !== $value) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     /**
      * Spend balance points. Throws \DomainException when balance is insufficient.
      * Lifetime is NOT touched.
@@ -303,30 +356,45 @@ class PointsRepository implements PointsRepositoryInterface
             throw new \InvalidArgumentException('Amount must be positive');
         }
 
-        $tx = null;
-        $points = $this->db->transaction(function () use ($user, $amount, $reason, $referenceType, $referenceId, &$tx) {
-            $points = $this->getOrCreateForUpdate($user);
-            if ($points->balance < $amount) {
-                throw new \DomainException('Insufficient point balance');
-            }
-            $points->balance -= $amount;
-            $points->raise(new PointsAwarded($user, -$amount, $reason));
-            $points->save();
-
-            $tx = PointTransaction::create([
-                'user_id' => $user->id,
-                'amount' => -$amount,
-                'reason' => $reason,
-                'reference_type' => $referenceType,
-                'reference_id' => $referenceId,
-            ]);
-
-            return $points;
-        });
+        [$points, $tx] = $this->db->transaction(
+            fn () => $this->deductWithin($user, $amount, $reason, $referenceType, $referenceId)
+        );
 
         $this->dispatchEventsFor($points);
 
         return $tx;
+    }
+
+    /**
+     * The debit leg WITHOUT its own transaction or event flush — see
+     * {@see awardWithin()} for the rationale.
+     *
+     * @return array{0: UserPoints, 1: PointTransaction}
+     */
+    protected function deductWithin(
+        User $user,
+        int $amount,
+        string $reason,
+        ?string $referenceType,
+        ?int $referenceId,
+    ): array {
+        $points = $this->getOrCreateForUpdate($user);
+        if ($points->balance < $amount) {
+            throw new \DomainException('Insufficient point balance');
+        }
+        $points->balance -= $amount;
+        $points->raise(new PointsAwarded($user, -$amount, $reason));
+        $points->save();
+
+        $tx = PointTransaction::create([
+            'user_id' => $user->id,
+            'amount' => -$amount,
+            'reason' => $reason,
+            'reference_type' => $referenceType,
+            'reference_id' => $referenceId,
+        ]);
+
+        return [$points, $tx];
     }
 
     /**
@@ -336,9 +404,12 @@ class PointsRepository implements PointsRepositoryInterface
      * changed. The receiver's credit bypasses the daily cap — received points
      * aren't "earned" through activity.
      *
-     * Prefer this over calling {@see deduct()} then {@see award()} in the
-     * controller: it guarantees a single atomic unit regardless of whether the
-     * underlying store supports nested-transaction savepoints.
+     * Runs {@see deductWithin()} + {@see awardWithin()} inside one transaction
+     * instead of the public deduct()/award() legs: those flush their own
+     * PointsAwarded events as soon as each leg commits, which — inside the
+     * outer transfer transaction — announced the debit to listeners even when
+     * the credit leg failed afterwards and everything rolled back (PS-EVT-003).
+     * Both models' pending events now flush only after the whole unit commits.
      */
     public function transfer(
         User $from,
@@ -352,13 +423,18 @@ class PointsRepository implements PointsRepositoryInterface
             return;
         }
 
-        $this->db->transaction(function () use ($from, $to, $amount, $reason, $referenceType, $referenceId) {
-            // deduct() raises DomainException on shortfall, which rolls back the
-            // whole transfer (savepoint semantics) so the receiver is never
-            // credited for a payment that didn't go through.
-            $this->deduct($from, $amount, $reason . '.out', $referenceType, $referenceId);
-            $this->award($to, $amount, $reason . '.in', $referenceType, $referenceId, null, true);
+        [$fromPoints, $toPoints] = $this->db->transaction(function () use ($from, $to, $amount, $reason, $referenceType, $referenceId) {
+            // deductWithin() raises DomainException on shortfall, which rolls
+            // back the whole transfer so the receiver is never credited for a
+            // payment that didn't go through.
+            [$fromPoints] = $this->deductWithin($from, $amount, $reason.'.out', $referenceType, $referenceId);
+            [$toPoints] = $this->awardWithin($to, $amount, $reason.'.in', $referenceType, $referenceId, null, true, false);
+
+            return [$fromPoints, $toPoints];
         });
+
+        $this->dispatchEventsFor($fromPoints);
+        $this->dispatchEventsFor($toPoints);
     }
 
     /**
@@ -412,20 +488,38 @@ class PointsRepository implements PointsRepositoryInterface
     }
 
     /**
-     * True when the exception is a unique-constraint violation. Used so the
-     * dedupe_key index can act as a last-line defense against double credits
-     * without us having to parse driver-specific SQLSTATEs exhaustively.
+     * True when the exception is a unique-constraint violation, resolved per
+     * database driver instead of by substring-guessing the message. The
+     * dedupe_key unique index is the last line of defense against double
+     * credits, so a false negative here would let a retried dispatch commit
+     * an orphaned balance bump; a false positive would abort a legitimate
+     * credit. Unknown drivers keep the generic heuristic.
      */
     private function isUniqueViolation(\Throwable $e): bool
     {
         $code = (int) ($e->getCode() ?? 0);
-        if ($code === 23000 || $code === 1062 || $code === 23505) {
-            return true;
-        }
         $msg = strtolower($e->getMessage());
-        return str_contains($msg, 'unique')
-            || str_contains($msg, 'duplicate')
-            || str_contains($msg, '1062');
+
+        $driver = method_exists($this->db, 'getDriverName')
+            ? strtolower((string) $this->db->getDriverName())
+            : '';
+
+        return match ($driver) {
+            'mysql' => $code === 23000 || $code === 1062
+                || str_contains($msg, 'duplicate entry')
+                || str_contains($msg, '1062'),
+            'pgsql' => $code === 23505
+                || str_contains($msg, 'duplicate key value'),
+            'sqlite' => $code === 23000 || $code === 19
+                || str_contains($msg, 'unique constraint')
+                || str_contains($msg, 'is not unique'),
+            'sqlsrv' => $code === 23000 || $code === 2601 || $code === 2627
+                || str_contains($msg, '2601')
+                || str_contains($msg, '2627'),
+            default => $code === 23000
+                || str_contains($msg, 'unique')
+                || str_contains($msg, 'duplicate'),
+        };
     }
 
     public function settingInt(string $key, int $default = 0): int

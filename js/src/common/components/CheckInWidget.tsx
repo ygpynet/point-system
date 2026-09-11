@@ -76,36 +76,24 @@ export function createCheckInWidget(WidgetBase) {
       const perDayExtra = Number(app.forum.attribute('pointSystem.checkin_per_day_extra') ?? 0);
       const rank = attr('pointCheckinRankToday');
       const todayTotal = Number(attr('pointCheckinTodayTotal') ?? 0);
+      const growth = perDayExtra > 0 && capDays > 0;
 
       return (
         <div className="PointSystemCheckInWidget-body">
-          <div className="PointSystemCheckInWidget-streak" title={app.translator.trans('ygpynet-point-system.forum.checkin.streak_title', {}, true)}>
-            <i className="fas fa-fire" aria-hidden="true" />{' '}
-            {app.translator.trans('ygpynet-point-system.forum.checkin.streak', { count: streak })}
+          {/* Streak hero — the flame + big number is the emotional anchor */}
+          <div
+            className="PointSystemCheckInWidget-hero"
+            title={app.translator.trans('ygpynet-point-system.forum.checkin.streak', { count: streak }, true)}
+          >
+            <i className="fas fa-fire PointSystemCheckInWidget-heroFlame" aria-hidden="true" />
+            <span className="PointSystemCheckInWidget-heroStreak">{streak}</span>
+            <span className="PointSystemCheckInWidget-heroLabel">
+              {app.translator.trans('ygpynet-point-system.forum.checkin.streak_hero', { count: streak })}
+            </span>
           </div>
 
-          {done && rank ? (
-            <div className="PointSystemCheckInWidget-rank">
-              <i className="fas fa-trophy" aria-hidden="true" />{' '}
-              {app.translator.trans('ygpynet-point-system.forum.checkin.rank_today', { rank })}
-            </div>
-          ) : null}
-
-          {todayTotal > 0 && (
-            <div className="PointSystemCheckInWidget-todayCount">
-              {app.translator.trans('ygpynet-point-system.forum.checkin.today_total', { count: todayTotal })}
-            </div>
-          )}
-
-          {!done && nextReward > 0 && (
-            <div className="PointSystemCheckInWidget-reward">
-              {app.translator.trans('ygpynet-point-system.forum.checkin.reward_today', { amount: nextReward })}
-            </div>
-          )}
-
-          {!done && perDayExtra > 0 && capDays > 0 && (
-            <div className="PointSystemCheckInWidget-next">{app.translator.trans('ygpynet-point-system.forum.checkin.growth_hint', { days: capDays })}</div>
-          )}
+          {/* Consecutive-days track (only when rewards actually grow) */}
+          {growth ? this.track(streak, done, capDays) : null}
 
           <Button
             className="Button Button--primary PointSystemCheckInWidget-button"
@@ -114,10 +102,34 @@ export function createCheckInWidget(WidgetBase) {
             loading={this.loading}
             onclick={() => this.checkIn()}
           >
-            {done ? app.translator.trans('ygpynet-point-system.forum.checkin.done') : app.translator.trans('ygpynet-point-system.forum.checkin.action')}
+            <span className="PointSystemCheckInWidget-buttonLabel">
+              {done ? app.translator.trans('ygpynet-point-system.forum.checkin.done') : app.translator.trans('ygpynet-point-system.forum.checkin.action')}
+            </span>
+            {!done && nextReward > 0 && (
+              <span className="PointSystemCheckInWidget-buttonReward">
+                <i className="fas fa-coins" aria-hidden="true" /> +{nextReward}
+              </span>
+            )}
           </Button>
 
-          {canMakeup && !done && (
+          <div className="PointSystemCheckInWidget-stats">
+            <span>
+              <i className="fas fa-users" aria-hidden="true" />
+              {app.translator.trans('ygpynet-point-system.forum.checkin.today_total', { count: todayTotal })}
+            </span>
+            {done && rank ? (
+              <span className="PointSystemCheckInWidget-statsRank">
+                <i className="fas fa-trophy" aria-hidden="true" />
+                {app.translator.trans('ygpynet-point-system.forum.checkin.rank_today', { rank })}
+              </span>
+            ) : null}
+          </div>
+
+          {/* The make-up button stays available even after checking in for
+              today (done): an accidental tap must not hide the chance to
+              repair the streak — canMakeup already encodes "a bridgeable gap
+              exists and the budget covers it". */}
+          {canMakeup && (
             <Button
               className="Button PointSystemCheckInWidget-makeup"
               icon="fas fa-rotate-left"
@@ -128,6 +140,35 @@ export function createCheckInWidget(WidgetBase) {
               {app.translator.trans('ygpynet-point-system.forum.checkin.makeup_action', { cost: makeupCost })}
             </Button>
           )}
+        </div>
+      );
+    }
+
+    /**
+     * The consecutive-days track: one pill per day up to the growth cap
+     * (clamped at 10 so a 30-day cap stays renderable). Filled pills =
+     * streak already banked; the dashed pill is today's target while the
+     * user hasn't checked in yet.
+     */
+    protected track(streak: number, done: boolean, capDays: number): Mithril.Children {
+      const app = forumApp();
+      const cells = Math.max(1, Math.min(capDays || 7, 10));
+      const pills = [];
+      for (let i = 1; i <= cells; i++) {
+        const filled = i <= Math.min(streak, cells);
+        // Today's position: the last banked pill once checked in, the next
+        // one otherwise.
+        const today = done ? i === Math.min(streak, cells) : i === streak + 1;
+        pills.push(<span className={'PointSystemCheckInWidget-cell' + (filled ? ' is-filled' : '') + (today ? ' is-today' : '')} key={`cell-${i}`} />);
+      }
+      return (
+        <div
+          className="PointSystemCheckInWidget-track"
+          role="img"
+          aria-label={app.translator.trans('ygpynet-point-system.forum.checkin.growth_hint', { days: capDays })}
+          title={app.translator.trans('ygpynet-point-system.forum.checkin.growth_hint', { days: capDays }, true)}
+        >
+          {pills}
         </div>
       );
     }

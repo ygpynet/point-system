@@ -35,7 +35,7 @@ use Ramon\PointSystem\Notification\TradeRequestedBlueprint;
  * alert pipeline (and `flarum/realtime`, when present) stays in sync with the
  * rest of the system.
  */
-class NotificationModule implements ModuleInterface
+class NotificationModule extends AbstractModule
 {
     public function extenders(): array
     {

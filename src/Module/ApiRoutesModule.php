@@ -38,7 +38,7 @@ use Ramon\PointSystem\Controller\UploadCoverDecorationController;
  * The `/api/point-system/*` surface: claiming, equipping, trading, check-ins,
  * manual/bulk awards, tips, the moderation queue and the admin trade dashboard.
  */
-class ApiRoutesModule implements ModuleInterface
+class ApiRoutesModule extends AbstractModule
 {
     public function extenders(): array
     {

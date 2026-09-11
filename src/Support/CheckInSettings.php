@@ -74,40 +74,57 @@ final class CheckInSettings
     }
 
     /**
-     * Can this row use a make-up right now? A gap must exist (the last
-     * checked day is older than yesterday) AND the consecutive-makeup budget
-     * must not only be non-exhausted but big enough to bridge the WHOLE gap.
+     * The day the next make-up fills, or null when no trailing gap exists.
      *
-     * A make-up exists to reconnect the streak: the next real check-in
-     * continues it only when the last stamped day is yesterday. Filling
-     * days without reaching yesterday still leaves $last < yesterday, so
-     * the streak resets to 1 anyway and the spent points buy nothing —
-     * in that case the widget must NOT offer the button at all.
+     * The gap is derived from point_system_checkin_days — the authoritative
+     * per-day record — instead of from last_checkin_date: a real check-in
+     * performed while a gap existed (the "accidental tap" case) advances
+     * last_checkin_date to TODAY, and anchoring on it would erase the gap
+     * and make the broken streak unrepairable. The anchor is the user's
+     * latest checked day STRICTLY BEFORE today; the gap is (anchor, yesterday].
+     */
+    public function makeupTarget(int $userId): ?string
+    {
+        $anchor = $this->db->table('point_system_checkin_days')
+            ->where('user_id', $userId)
+            ->where('date', '<', DayBoundary::today())
+            ->max('date');
+
+        if ($anchor === null || (string) $anchor >= DayBoundary::yesterday()) {
+            return null;
+        }
+
+        return Carbon::createFromFormat('Y-m-d', (string) $anchor, DayBoundary::timezone())
+            ->startOfDay()
+            ->addDay()
+            ->toDateString();
+    }
+
+    /**
+     * Can this row use a make-up right now? A trailing gap must exist (see
+     * {@see makeupTarget()}) AND the consecutive-makeup budget must not only
+     * be non-exhausted but big enough to bridge the WHOLE gap.
+     *
+     * A make-up exists to reconnect the streak: filling days without
+     * reaching yesterday still leaves today's run broken, so the spent
+     * points buy nothing — in that case the widget must NOT offer the
+     * button at all.
      */
     public function canMakeup(?UserPoints $row): bool
     {
-        if (! $this->makeupEnabled() || $row === null || $row->last_checkin_date === null) {
+        if (! $this->makeupEnabled() || $row === null) {
             return false;
         }
 
-        $last = $row->last_checkin_date;
-        $yesterday = DayBoundary::yesterday();
-
-        if ($last >= $yesterday) {
+        $target = $this->makeupTarget((int) $row->user_id);
+        if ($target === null) {
             return false;
         }
 
-        /*
-         * Days missing between the last checked day and yesterday — one paid
-         * make-up each. Both strings parse as midnight-local in the SAME
-         * server zone {@see DayBoundary} uses, so diffInDays is an exact
-         * whole number and the int cast is lossless (Carbon 2 int / Carbon 3
-         * float both fine).
-         */
         $tz = DayBoundary::timezone();
-        $gapDays = (int) Carbon::createFromFormat('Y-m-d', $last, $tz)
+        $gapDays = (int) Carbon::createFromFormat('Y-m-d', $target, $tz)
             ->startOfDay()
-            ->diffInDays(Carbon::createFromFormat('Y-m-d', $yesterday, $tz)->startOfDay());
+            ->diffInDays(Carbon::createFromFormat('Y-m-d', DayBoundary::yesterday(), $tz)->startOfDay()) + 1;
 
         $remaining = $this->makeupMax() - (int) $row->checkin_makeup_count;
 

@@ -12,26 +12,30 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Ramon\PointSystem\Model\UserPoints;
 use Ramon\PointSystem\Repository\PointsRepository;
+use Ramon\PointSystem\Support\ApiError;
 use Ramon\PointSystem\Support\CheckInSettings;
 use Ramon\PointSystem\Support\DayBoundary;
 
 /**
  * POST /api/point-system/checkin/makeup
  *
- * Paid make-up check-in (补签). Bridges ONE missed day per call: the day
- * immediately after the user's last checked day is retroactively marked as
- * checked, the streak advances by 1, and the configured point cost is
- * deducted from the BALANCE (lifetime untouched).
+ * Paid make-up check-in (补签). Bridges ONE missed day per call: the first
+ * missing day of the user's trailing gap — the gap between the latest
+ * checked day STRICTLY BEFORE today and yesterday. Deriving the gap from
+ * the per-day record (instead of last_checkin_date) keeps the opportunity
+ * alive even when a real check-in has already stamped TODAY: an accidental
+ * tap must not erase the chance to repair the streak, and after the fill
+ * the streak is recomputed as the full contiguous run ending at the latest
+ * checked day.
  *
  * Guards, all re-checked under lockForUpdate:
- *   - a real gap must exist (last_checkin_date < yesterday)
+ *   - a real trailing gap must exist (makeupTarget() != null)
  *   - consecutive-makeup budget not exhausted (checkin_makeup_count < max);
  *     the counter resets on every REAL check-in
  *   - balance must cover the cost (deduct throws otherwise)
  *
  * Repeated calls walk the gap forward one day at a time until either the
- * budget runs out or the user is caught up to yesterday — after which today's
- * normal check-in continues the streak seamlessly.
+ * budget runs out or the user is caught up to yesterday.
  */
 class MakeUpController implements RequestHandlerInterface
 {
@@ -39,6 +43,7 @@ class MakeUpController implements RequestHandlerInterface
         protected PointsRepository $points,
         protected CheckInSettings $settings,
         protected ConnectionInterface $db,
+        protected ApiError $errors,
     ) {}
 
     public function handle(ServerRequestInterface $request): ResponseInterface
@@ -47,9 +52,7 @@ class MakeUpController implements RequestHandlerInterface
         $actor->assertRegistered();
 
         if (! $this->settings->makeupEnabled()) {
-            return new JsonResponse([
-                'errors' => [['code' => 'feature_disabled', 'detail' => 'Make-up check-ins are disabled.']],
-            ], 422);
+            return $this->errors->unprocessable('feature_disabled', 'feature_disabled');
         }
 
         $cost = $this->settings->makeupCost();
@@ -63,12 +66,7 @@ class MakeUpController implements RequestHandlerInterface
                     ->lockForUpdate()
                     ->first();
 
-                if ($row === null || $row->last_checkin_date === null) {
-                    return ['code' => 'no_gap'];
-                }
-
-                // String compare on 'Y-m-d' is safe lexicographically.
-                if ($row->last_checkin_date >= DayBoundary::yesterday()) {
+                if ($row === null) {
                     return ['code' => 'no_gap'];
                 }
 
@@ -76,11 +74,15 @@ class MakeUpController implements RequestHandlerInterface
                     return ['code' => 'makeup_limit'];
                 }
 
-                // The filled day is the first hole right after the last
-                // checked day; streak simply advances by one.
-                $target = \Carbon\Carbon::createFromFormat('Y-m-d', $row->last_checkin_date)
-                    ->addDay()
-                    ->toDateString();
+                // The gap is derived from the per-day record, NOT from
+                // last_checkin_date: a real check-in performed while a gap
+                // existed (the accidental tap) advances last_checkin_date to
+                // today, and anchoring there would erase the gap forever and
+                // leave the broken streak unrepairable.
+                $target = $this->settings->makeupTarget((int) $actor->id);
+                if ($target === null) {
+                    return ['code' => 'no_gap'];
+                }
 
                 // Deduct first: throws DomainException on insufficient
                 // balance, aborting the outer transaction before any stamp.
@@ -91,11 +93,6 @@ class MakeUpController implements RequestHandlerInterface
                     'user',
                     $actor->id,
                 );
-
-                $row->last_checkin_date = $target;
-                $row->checkin_streak = (int) $row->checkin_streak + 1;
-                $row->checkin_makeup_count = (int) $row->checkin_makeup_count + 1;
-                $row->save();
 
                 // Late arrivals append to that day's tail — the historical
                 // order is already closed, so a make-up takes the next free
@@ -110,6 +107,19 @@ class MakeUpController implements RequestHandlerInterface
                     'seq' => $seq,
                 ]);
 
+                // last_checkin_date advances to the latest checked day — it
+                // may already BE today when the gap sits behind an accidental
+                // check-in. The streak is RECOMPUTED as the contiguous run
+                // ending at that day (AFTER the insert above, so the filled
+                // day is part of the walk): the classic walk (+1) falls out
+                // of the same formula, and the accidental case restores the
+                // full bridged run instead of staying at 1.
+                $lastChecked = max((string) $row->last_checkin_date, $target);
+                $row->last_checkin_date = $lastChecked;
+                $row->checkin_streak = $this->streakEndingAt((int) $actor->id, $lastChecked);
+                $row->checkin_makeup_count = (int) $row->checkin_makeup_count + 1;
+                $row->save();
+
                 return [
                     'code' => 'ok',
                     'paid' => $cost,
@@ -117,24 +127,50 @@ class MakeUpController implements RequestHandlerInterface
                 ];
             });
         } catch (\DomainException $e) {
-            return new JsonResponse([
-                'errors' => [['code' => 'insufficient_balance', 'detail' => $e->getMessage()]],
-            ], 422);
+            return $this->errors->fromDomain($e);
         }
 
         if ($outcome['code'] !== 'ok') {
-            $messages = [
-                'no_gap' => 'There is no missed day to make up.',
-                'makeup_limit' => 'Consecutive make-up limit reached. Check in for real first.',
+            $keys = [
+                'no_gap' => 'makeup_no_gap',
+                'makeup_limit' => 'makeup_limit',
             ];
 
-            return new JsonResponse([
-                'errors' => [['code' => $outcome['code'], 'detail' => $messages[$outcome['code']]]],
-            ], 422);
+            return $this->errors->unprocessable($outcome['code'], $keys[$outcome['code']]);
         }
 
         unset($outcome['code']);
 
         return new JsonResponse(['data' => $outcome + $this->settings->stateFor($this->points, $actor)], 200);
+    }
+
+    /**
+     * Length of the user's contiguous checked run ending at $endDate,
+     * computed from the per-day record. Used instead of the old
+     * `streak + 1` because a make-up can fill a hole BEHIND an existing
+     * check-in (the accidental-tap case), which extends the run ending at
+     * the LATEST checked day rather than appending to a stale counter.
+     */
+    private function streakEndingAt(int $userId, string $endDate): int
+    {
+        $dates = $this->db->table('point_system_checkin_days')
+            ->where('user_id', $userId)
+            ->where('date', '<=', $endDate)
+            ->orderByDesc('date')
+            ->pluck('date');
+
+        $streak = 0;
+        $cursor = \Carbon\Carbon::createFromFormat('Y-m-d', $endDate, DayBoundary::timezone())
+            ->startOfDay();
+
+        foreach ($dates as $date) {
+            if ((string) $date !== $cursor->toDateString()) {
+                break;
+            }
+            $streak++;
+            $cursor->subDay();
+        }
+
+        return $streak;
     }
 }

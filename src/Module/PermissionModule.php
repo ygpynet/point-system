@@ -14,7 +14,7 @@ use Ramon\PointSystem\Model\AvatarDecoration;
  * Authorization: the per-row policy for avatar decorations and the global
  * policy that all shop-family actions funnel through.
  */
-class PermissionModule implements ModuleInterface
+class PermissionModule extends AbstractModule
 {
     public function extenders(): array
     {

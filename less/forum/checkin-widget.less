@@ -1,52 +1,157 @@
 // ─── Check-in widget (fof/forum-widgets-core) ───────────────────────────────
 // Rendered inside the widgets-core container; scoped to our className so the
 // forum's own `.Widget` styles from the framework keep working untouched.
+//
+// 布局：连续天数 hero（火焰 + 大数字）→ 连签进度条 → 主行动按钮（带奖励
+// 角标）→ 统计行（今日人数 · 我的排名）→ 虚线补签按钮。全部走 --ps-*
+// 令牌，自动跟随主题与暗色模式。
 
 .PointSystemCheckInWidget {
   .PointSystemCheckInWidget-body {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
     padding: 4px 0;
+    min-width: 0;
   }
 
-  .PointSystemCheckInWidget-streak {
+  // ── Streak hero：火焰 + 大数字，情绪锚点 ─────────────────────
+  .PointSystemCheckInWidget-hero {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 14px;
-    font-weight: 600;
-
-    .fa-fire {
-      color: #f97316;
-    }
+    gap: 10px;
+    min-width: 0;
   }
 
-  .PointSystemCheckInWidget-reward,
-  .PointSystemCheckInWidget-next,
-  .PointSystemCheckInWidget-todayCount {
+  .PointSystemCheckInWidget-heroFlame {
+    color: #f97316;
+    font-size: 22px;
+    line-height: 1;
+    filter: drop-shadow(0 1px 2px rgba(249, 115, 22, 0.35));
+  }
+
+  .PointSystemCheckInWidget-heroStreak {
+    font-size: 28px;
+    font-weight: 800;
+    line-height: 1;
+    font-variant-numeric: var(--ps-num-tabular);
+    color: var(--ps-text);
+  }
+
+  .PointSystemCheckInWidget-heroLabel {
     font-size: 12px;
-    color: var(--text-muted, #8a8a8a);
+    color: var(--ps-text-muted);
+    white-space: nowrap;
   }
 
-  .PointSystemCheckInWidget-rank {
+  // ── 连签进度条：每段一天，填充 = 已存入的连签 ─────────────────
+  .PointSystemCheckInWidget-track {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 13px;
-    font-weight: 600;
-    color: #d97706;
+    gap: 5px;
+    min-width: 0;
+  }
 
-    .fa-trophy {
-      color: #f59e0b;
+  .PointSystemCheckInWidget-cell {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--control-bg, #eceeef);
+    transition: background var(--ps-t-fast), box-shadow var(--ps-t-fast);
+
+    &.is-filled {
+      background: var(--ps-accent);
+    }
+
+    // 今天待签的格子：虚线描边 + 呼吸提示（prefers-reduced-motion 由浏览器
+    // 自行停用动画——动效仅是视觉提示）
+    &.is-today:not(.is-filled) {
+      background: var(--ps-accent-soft);
+      box-shadow: inset 0 0 0 1.5px var(--ps-accent);
+      animation: ps-checkin-pulse 2s var(--ps-ease) infinite;
+    }
+
+    // 签到后今天的格子：填充 + 轻微外发光
+    &.is-filled.is-today {
+      box-shadow: 0 0 0 3px var(--ps-accent-soft);
     }
   }
 
+  // ── 主行动按钮：全宽，右侧奖励角标 ───────────────────────────
   .PointSystemCheckInWidget-button {
     align-self: stretch;
+    justify-content: center;
+    gap: 8px;
+
+    // Flarum 把自定义子元素包进 .Button-labelText（普通 <span>，非 flex），
+    // 按钮自身的 gap 作用不到其中的 label 与 reward —— 给包裹层自己的间隔。
+    .Button-labelText {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .PointSystemCheckInWidget-buttonReward {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 1px 8px;
+      border-radius: var(--ps-radius-pill);
+      background: rgba(255, 255, 255, 0.22);
+      font-weight: 700;
+      font-size: 12px;
+      font-variant-numeric: var(--ps-num-tabular);
+
+      i {
+        font-size: 11px;
+      }
+    }
 
     &[disabled] {
       opacity: 0.65;
     }
+  }
+
+  // ── 统计行：今日人数 · 我的排名 ──────────────────────────────
+  .PointSystemCheckInWidget-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    font-size: 12px;
+    color: var(--ps-text-muted);
+
+    > span {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      min-width: 0;
+    }
+
+    i {
+      color: var(--ps-text-icon);
+      font-size: 11px;
+    }
+
+    .PointSystemCheckInWidget-statsRank .fa-trophy {
+      color: #f59e0b;
+    }
+  }
+
+  // ── 补签：次要动作，虚线弱化 ─────────────────────────────────
+  .PointSystemCheckInWidget-makeup {
+    align-self: stretch;
+    border-style: dashed;
+    color: var(--ps-text-muted);
+  }
+}
+
+@keyframes ps-checkin-pulse {
+  0%,
+  100% {
+    box-shadow: inset 0 0 0 1.5px var(--ps-accent);
+  }
+  50% {
+    box-shadow: inset 0 0 0 2.5px var(--ps-accent);
   }
 }

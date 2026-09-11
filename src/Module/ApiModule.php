@@ -34,7 +34,7 @@ use Ramon\PointSystem\Support\DecorationRegistry;
  * the user / post / forum field projections that expose points and claims to
  * clients.
  */
-class ApiModule implements ModuleInterface
+class ApiModule extends AbstractModule
 {
     public function extenders(): array
     {

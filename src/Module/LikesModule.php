@@ -15,8 +15,20 @@ use Ramon\PointSystem\Listener\RevertLikePoints;
  * like given, plus reverting them on unlike. Gated on the extension being
  * enabled, exactly as before.
  */
-class LikesModule implements ModuleInterface
+class LikesModule extends AbstractModule
 {
+    /**
+     * The Conditional extender already makes this module inert when
+     * flarum/likes is absent or disabled; declaring it here too keeps the
+     * composition root honest — extend.php filters disabled modules before
+     * calling extenders(), so the module never even registers a no-op.
+     */
+    #[\Override]
+    public function enabled(): bool
+    {
+        return class_exists(\Flarum\Likes\Event\PostWasLiked::class);
+    }
+
     public function extenders(): array
     {
         return [

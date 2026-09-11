@@ -12,7 +12,7 @@ use Flarum\Extend\Locales;
  * Client assets and public page routes for the forum and admin shells, plus
  * the locale loader.
  */
-class FrontendModule implements ModuleInterface
+class FrontendModule extends AbstractModule
 {
     public function extenders(): array
     {

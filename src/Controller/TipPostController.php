@@ -16,6 +16,7 @@ use Ramon\PointSystem\Event\PostTipped;
 use Ramon\PointSystem\Model\PostTip;
 use Ramon\PointSystem\Points\TipRateLimiter;
 use Ramon\PointSystem\Repository\PointsRepository;
+use Ramon\PointSystem\Support\ApiError;
 
 /**
  * POST /api/point-system/tip
@@ -38,6 +39,7 @@ class TipPostController implements RequestHandlerInterface
         protected PointsRepository $points,
         protected Dispatcher $events,
         protected TipRateLimiter $rateLimiter,
+        protected ApiError $errors,
     ) {}
 
     #[\Override]
@@ -105,7 +107,7 @@ class TipPostController implements RequestHandlerInterface
                 'amount' => $amount,
             ]);
         } catch (\DomainException $e) {
-            return new JsonResponse(['errors' => [['detail' => 'Insufficient points']]], 422);
+            return $this->errors->fromDomain($e);
         } catch (\Throwable $e) {
             return new JsonResponse(['errors' => [['detail' => 'Transaction failed']]], 500);
         }

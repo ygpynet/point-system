@@ -1,39 +1,50 @@
 // ─────────────────────────────────────────────────────────────
 // 积分池挂件（fof/forum-widgets-core，默认位于首页侧栏、签到挂件下方）。
-// 展示社区所有成员当前积分总和；数值由服务端每 60 秒聚合一次，
-// 以公共 forum 属性下发，这里只做纯渲染。
+// 侧边栏宽度有限（约 250–300px），大号数字 + 单位文本极易溢出：
+// 所有行都 min-width:0 + 可换行，数字行居中对齐（不再用 baseline 混排）。
 // ─────────────────────────────────────────────────────────────
 
 .PointSystemPoolWidget-body {
   display: flex;
   flex-direction: column;
   gap: var(--ps-space-2);
+  min-width: 0;
 }
 
 .PointSystemPoolWidget-total {
   display: flex;
-  align-items: baseline;
-  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
 
   > i {
+    flex: 0 0 auto;
     align-self: center;
     color: var(--ps-currency);
-    font-size: 20px;
+    font-size: 18px;
+    line-height: 1;
   }
 }
 
-// 数字本身是主角：大号、加粗、等宽数字，扫一眼就能读
+// 数字本身是主角：大号、加粗、等宽数字；长数字允许收缩，
+// 极端长串（百万级）最后才在任意字符处折行
 .PointSystemPoolWidget-amount {
-  font-size: 26px;
+  flex: 0 1 auto;
+  min-width: 0;
+  font-size: 24px;
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1.15;
   font-variant-numeric: var(--ps-num-tabular);
-  color: var(--ps-text);
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
 }
 
 .PointSystemPoolWidget-unit {
+  flex: 0 0 auto;
   color: var(--ps-text-muted);
-  font-size: 13px;
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 .PointSystemPoolWidget-help {
@@ -41,4 +52,38 @@
   font-size: 12px;
   line-height: 1.5;
   color: var(--ps-text-muted);
+  overflow-wrap: anywhere;
+}
+
+// ── 额度模式（管理员设置了总额度）─────────────────────────────
+
+// 额度被发超（剩余为负）时数字转警示色
+.PointSystemPoolWidget-total.is-overdrawn {
+  .PointSystemPoolWidget-amount {
+    color: var(--ps-danger-fg);
+  }
+}
+
+// 与商店 tier 进度条同款：细条 + 主题色填充
+.PointSystemPoolWidget-progressBar {
+  height: 5px;
+  background: var(--control-bg, #eee);
+  border-radius: 999px;
+  overflow: hidden;
+
+  > span {
+    display: block;
+    height: 100%;
+    background: var(--ps-accent);
+    transition: width 0.4s var(--ps-ease);
+  }
+}
+
+// "已发放 X / 总额度 Y" — 窄栏允许自然折行，不撑破容器
+.PointSystemPoolWidget-meta {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ps-text-muted);
+  font-variant-numeric: var(--ps-num-tabular);
+  overflow-wrap: anywhere;
 }

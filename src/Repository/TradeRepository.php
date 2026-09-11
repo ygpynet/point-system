@@ -502,11 +502,56 @@ class TradeRepository
                 ]);
             }
 
-            // Flip ShopClaim ownership BACK to the pre-trade owner.
+            // Move each item BACK to its pre-trade owner. This mirrors
+            // execute()'s transferClaims(): decrement (or delete) the current
+            // holder's claim, increment (or create) the original owner's.
+            //
+            // The previous implementation flipped the current holder's row
+            // `user_id` in place. That crashed with a UNIQUE
+            // (user_id, item_type, item_id) violation whenever the original
+            // owner still held copies of the item (their sibling row already
+            // exists — PS-TRD-001, surfaced as an unhandled HTTP 500 and the
+            // trade silently left completed), and it left the post-trade
+            // owner's `current_*_decoration_id` dangling when they had
+            // equipped the received item (PS-TRD-002).
             foreach ($tradeItems as $ti) {
-                $claim = $reverseOwnerMap[(int) $ti->id];
-                $claim->user_id = (int) $ti->owner_id;
-                $claim->save();
+                $current = $reverseOwnerMap[(int) $ti->id];
+                $originalOwnerId = (int) $ti->owner_id;
+                $currentOwnerId = $this->resolveCounterparty($trade, $originalOwnerId);
+
+                $current->quantity = (int) $current->quantity - 1;
+                if ((int) $current->quantity <= 0) {
+                    $current->delete();
+                } else {
+                    $current->save();
+                }
+
+                $own = ShopClaim::query()
+                    ->where('user_id', $originalOwnerId)
+                    ->where('item_type', $ti->item_type)
+                    ->where('item_id', $ti->item_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($own) {
+                    $own->quantity = (int) $own->quantity + 1;
+                    $own->save();
+                } else {
+                    ShopClaim::create([
+                        'user_id'    => $originalOwnerId,
+                        'item_type'  => (string) $ti->item_type,
+                        'item_id'    => (int) $ti->item_id,
+                        'quantity'   => 1,
+                        'price_paid' => 0,
+                    ]);
+                }
+
+                $loserPoints = $points[$currentOwnerId] ?? null;
+                $column = self::EQUIPPED_COLUMN_BY_TYPE[(string) $ti->item_type] ?? null;
+                if ($loserPoints && $column && (int) ($loserPoints->{$column} ?? 0) === (int) $ti->item_id) {
+                    $loserPoints->{$column} = null;
+                    $loserPoints->save();
+                }
             }
 
             // Mark the trade as cancelled (re-using the existing status to

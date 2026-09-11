@@ -14,6 +14,7 @@ use Ramon\PointSystem\FeatureGate;
 use Ramon\PointSystem\Model\ShopClaim;
 use Ramon\PointSystem\Model\UserPoints;
 use Ramon\PointSystem\Repository\PointsRepository;
+use Ramon\PointSystem\Support\ApiError;
 use Ramon\PointSystem\Support\DecorationRegistry;
 use Ramon\PointSystem\Support\ItemAvailability;
 use Ramon\PointSystem\Support\ShopItemLocator;
@@ -46,6 +47,7 @@ class ClaimItemController implements RequestHandlerInterface
         protected ConnectionInterface $db,
         protected FeatureGate $features,
         protected DecorationRegistry $registry,
+        protected ApiError $errors,
     ) {}
 
     #[\Override]
@@ -123,20 +125,9 @@ class ClaimItemController implements RequestHandlerInterface
                 return [$claim, $wasExisting];
             });
         } catch (\DomainException $e) {
-            $code = $e->getMessage();
-            // Tanto os códigos de disponibilidade (`expired`, `sold_out`,
-            // `group_restricted`, `not_yet_available`, `disabled`) quanto
-            // saldo-insuficiente são 422 (Unprocessable Entity). O ternário
-            // anterior `... ? 422 : 422` era dead code (relato de auditoria
-            // 2026-05-24); um `match`/`if` sobre código semanticamente
-            // diferente não muda o status — quem distingue é o `code` no
-            // payload, que o frontend usa pra escolher a chave de tradução.
-            return new JsonResponse([
-                'errors' => [[
-                    'code'   => $code === 'Insufficient point balance' ? 'insufficient_balance' : $code,
-                    'detail' => $code,
-                ]],
-            ], 422);
+            // Codes map to `lib.errors.*` translations and the stable token
+            // the frontend branches on (insufficient_balance); see ApiError.
+            return $this->errors->fromDomain($e);
         }
 
         if (! $claim) {

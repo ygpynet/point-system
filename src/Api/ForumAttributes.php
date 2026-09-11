@@ -16,6 +16,7 @@ use Ramon\PointSystem\Model\NameDecoration;
 use Ramon\PointSystem\Model\PostHighlightDecoration;
 use Ramon\PointSystem\Model\ShopClaim;
 use Ramon\PointSystem\Model\TitleDecoration;
+use Ramon\PointSystem\Model\UserPoints;
 use Ramon\PointSystem\Support\CssSanitizer;
 use Ramon\PointSystem\Support\ItemAvailability;
 use Ramon\PointSystem\Support\SubmissionScope;
@@ -353,43 +354,39 @@ class ForumAttributes
             Schema\Boolean::make('pointSystemCanViewTransactions')
                 ->get(fn ($_, Context $context) => $context->getActor()->hasPermission('pointSystem.viewTransactions')),
 
+            // Points-pool visibility — gates BOTH the sidebar widget (frontend
+            // checks this boolean) and the pool aggregate below (groups without
+            // the permission get enabled=false / total=0, so the economy stat
+            // never reaches them over the wire). The permission itself is
+            // seeded for Members by migration 2026_09_11_000001 and manageable
+            // from the Permissions page.
+            Schema\Boolean::make('pointSystemCanViewPool')
+                ->get(fn ($_, Context $context) => $context->getActor()->hasPermission('pointSystem.viewPool')),
+
             // ── Points pool (积分池) ────────────────────────────────────────
-            // Master toggle + the SUM of every member's balance, computed
-            // once per TTL and shared by ALL visitors (public stat). The
-            // cache key is intentionally actor-agnostic — unlike the
-            // catalogs above, this number is site-wide. 60s staleness is
-            // imperceptible for a display stat and keeps the aggregate off
-            // the hot path (tips/check-ins mutate balances constantly).
+            // Master toggle + the ISSUED aggregate the widget renders (Σ of
+            // every member's current balance — "how many points users hold
+            // right now", however they were earned). Computed once per TTL
+            // and shared by ALL visitors (public stat); the cache key is
+            // intentionally actor-agnostic. 60s staleness is imperceptible
+            // for a display stat and keeps the aggregate off the hot path
+            // (tips/check-ins mutate balances constantly). The frontend
+            // derives remaining = budget − issued; burns (giveaway entries,
+            // shop claims…) shrink the issued sum and thus refill the pool
+            // automatically.
             Schema\Boolean::make('pointSystemPoolEnabled')
-                ->get(fn () => (bool) $this->settings->get('point-system.pool_enabled', true)),
+                ->get(function ($_, Context $context) {
+                    if (! $context->getActor()->hasPermission('pointSystem.viewPool')) {
+                        return false;
+                    }
+
+                    return (bool) $this->settings->get('point-system.pool_enabled', true);
+                }),
 
             Schema\Integer::make('pointSystemPoolTotal')
-                ->get(function () {
-                    if (! (bool) $this->settings->get('point-system.pool_enabled', true)) {
-                        return 0;
-                    }
-
-                    // rememberCatalog() is typed `: array` (catalogs), so the
-                    // scalar cache lives inline here. Any cache failure
-                    // degrades to a live SUM, same as the catalogs.
-                    try {
-                        $cache = app(\Illuminate\Contracts\Cache\Repository::class);
-                        $hit = $cache->get('point-system.pool.total');
-                        if ($hit !== null) {
-                            return (int) $hit;
-                        }
-                        $total = (int) \Ramon\PointSystem\Model\UserPoints::query()
-                            ->selectRaw('COALESCE(SUM(balance), 0) AS total')
-                            ->value('total');
-                        $cache->put('point-system.pool.total', $total, self::CATALOG_TTL);
-
-                        return $total;
-                    } catch (\Throwable) {
-                        return (int) \Ramon\PointSystem\Model\UserPoints::query()
-                            ->selectRaw('COALESCE(SUM(balance), 0) AS total')
-                            ->value('total');
-                    }
-                }),
+                ->get(fn ($_, Context $context) => $context->getActor()->hasPermission('pointSystem.viewPool')
+                    ? ($this->poolEnabled() ? $this->poolIssued() : 0)
+                    : 0),
 
             // Trade subsystem — exposes both the master toggle (so the UI
             // can hide the "Trade" button forum-wide) and the per-actor
@@ -469,6 +466,38 @@ class ForumAttributes
             return $value;
         } catch (\Throwable) {
             return $loader();
+        }
+    }
+
+    private function poolEnabled(): bool
+    {
+        return (bool) $this->settings->get('point-system.pool_enabled', true);
+    }
+
+    /**
+     * Points ISSUED to the community: Σ of every member's current balance.
+     * rememberCatalog() is typed `: array` (catalogs), so the scalar cache
+     * lives inline here. Any cache failure degrades to a live SUM, same as
+     * the catalogs.
+     */
+    private function poolIssued(): int
+    {
+        try {
+            $cache = app(\Illuminate\Contracts\Cache\Repository::class);
+            $hit = $cache->get('point-system.pool.issued');
+            if ($hit !== null) {
+                return (int) $hit;
+            }
+            $issued = (int) UserPoints::query()
+                ->selectRaw('COALESCE(SUM(balance), 0) AS t')
+                ->value('t');
+            $cache->put('point-system.pool.issued', $issued, self::CATALOG_TTL);
+
+            return $issued;
+        } catch (\Throwable) {
+            return (int) UserPoints::query()
+                ->selectRaw('COALESCE(SUM(balance), 0) AS t')
+                ->value('t');
         }
     }
 

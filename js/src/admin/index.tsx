@@ -52,6 +52,21 @@ app.initializers.add('ygpynet/point-system', () => {
     )
     .registerPermission(
       {
+        icon: 'fas fa-piggy-bank',
+        label: app.translator.trans('ygpynet-point-system.admin.permissions.view_pool'),
+        permission: 'pointSystem.viewPool',
+        // The pool is a community display stat (issued total + remaining
+        // budget, no PII) — seeded for Members only by migration
+        // 2026_09_11_000001; logged-out visitors don't see it unless an
+        // admin grants Guest here. Revoking a group hides the sidebar
+        // widget AND stops the pool aggregate from being serialized to it
+        // (ForumAttributes).
+        allowGuest: true,
+      },
+      'view'
+    )
+    .registerPermission(
+      {
         icon: 'fas fa-shopping-cart',
         label: app.translator.trans('ygpynet-point-system.admin.permissions.claim'),
         permission: 'pointSystem.claim',
